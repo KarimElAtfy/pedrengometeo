@@ -29,18 +29,27 @@ const MODELLI = [
 const PER_ID = Object.fromEntries(MODELLI.map(m => [m.id, m]));
 const FAMIGLIE = [...new Set(MODELLI.map(m => m.fam))];
 
+/* ARPA pubblica piu valori per lo stesso istante e lo stesso sensore, distinti
+   dal codice operatore: 1 e la media del periodo, 3 il massimo, 4 il cumulato.
+   Il vento ne ha due, media e raffica, e mediarli insieme lo gonfia di un terzo,
+   che sulla temperatura percepita vale piu di un grado. Ogni sensore va quindi
+   letto con il suo operatore, e la chiave diventa "id|operatore". */
 const STAZIONI = [
-  { id: '8145',  tipo: 'temp',    nome: 'Torre Boldone',      km: 3.3, quota: 311 },
-  { id: '19022', tipo: 'temp',    nome: 'Bergamo via Maffei', km: 4.6, quota: 249 },
-  { id: '5864',  tipo: 'temp',    nome: 'Bergamo via Goisis', km: 4.2, quota: 290 },
-  { id: '8161',  tipo: 'pioggia', nome: 'Torre Boldone',      km: 3.3, quota: 311 },
-  { id: '19026', tipo: 'pioggia', nome: 'Bergamo via Maffei', km: 4.6, quota: 249 },
-  { id: '5857',  tipo: 'pioggia', nome: 'Bergamo via Goisis', km: 4.2, quota: 290 },
-  { id: '22322', tipo: 'pioggia', nome: 'Trescore Balneario', km: 8.7, quota: 251 },
-  { id: '6158',  tipo: 'umidita', nome: 'Bergamo via Goisis', km: 4.2, quota: 290 },
-  { id: '19103', tipo: 'vento',   nome: 'Bergamo via Goisis', km: 4.2, quota: 290 },
-  { id: '5981',  tipo: 'dirvento',nome: 'Bergamo via Goisis', km: 4.2, quota: 290 }
+  { id: '8145',  op: '1', tipo: 'temp',    nome: 'Torre Boldone',      km: 3.3, quota: 311 },
+  { id: '19022', op: '1', tipo: 'temp',    nome: 'Bergamo via Maffei', km: 4.6, quota: 249 },
+  { id: '5864',  op: '1', tipo: 'temp',    nome: 'Bergamo via Goisis', km: 4.2, quota: 290 },
+  { id: '8161',  op: '4', tipo: 'pioggia', nome: 'Torre Boldone',      km: 3.3, quota: 311 },
+  { id: '19026', op: '4', tipo: 'pioggia', nome: 'Bergamo via Maffei', km: 4.6, quota: 249 },
+  { id: '5857',  op: '4', tipo: 'pioggia', nome: 'Bergamo via Goisis', km: 4.2, quota: 290 },
+  { id: '22322', op: '4', tipo: 'pioggia', nome: 'Trescore Balneario', km: 8.7, quota: 251 },
+  { id: '6158',  op: '1', tipo: 'umidita', nome: 'Bergamo via Goisis', km: 4.2, quota: 290 },
+  { id: '19103', op: '1', tipo: 'vento',   nome: 'Bergamo via Goisis', km: 4.2, quota: 290 },
+  { id: '19103', op: '3', tipo: 'raffica', nome: 'Bergamo via Goisis', km: 4.2, quota: 290 },
+  { id: '5981',  op: '1', tipo: 'dirvento',nome: 'Bergamo via Goisis', km: 4.2, quota: 290 }
 ];
+STAZIONI.forEach(s => { s.chiave = s.id + '|' + s.op; });
+const OPERATORI_AMMESSI = {};
+STAZIONI.forEach(s => { (OPERATORI_AMMESSI[s.id] = OPERATORI_AMMESSI[s.id] || new Set()).add(s.op); });
 
 const VARIABILI = ['temperature_2m', 'precipitation', 'precipitation_probability', 'weather_code',
                    'cloud_cover', 'wind_speed_10m', 'wind_gusts_10m', 'relative_humidity_2m', 'snowfall'];
@@ -140,7 +149,7 @@ const URL_ARPA = 'https://www.dati.lombardia.it/resource/647i-nhxk.json';
 function urlArpa(ids, daISO, limite) {
   const inClause = ids.map(i => "'" + i + "'").join(',');
   const p = new URLSearchParams({
-    '$select': 'idsensore,data,valore',
+    '$select': 'idsensore,data,valore,idoperatore',
     '$where': `idsensore in(${inClause}) AND data > '${daISO}'`,
     '$order': 'data DESC',
     '$limit': String(limite)
@@ -197,14 +206,18 @@ function leggiEnsemble(risposta) {
 /* ---------------- osservazioni ARPA ---------------- */
 
 function aggregaArpa(righe) {
-  const per = {};                                  // idsensore -> Map(chiaveOra -> [valori])
+  const per = {};                                  // "id|operatore" -> Map(chiaveOra -> [valori])
   for (const r of righe) {
     const v = parseFloat(r.valore);
     if (!isFinite(v) || v <= -900) continue;
     if (r.stato && r.stato !== 'VA') continue;
+    const op = (r.idoperatore === undefined || r.idoperatore === null) ? '1' : String(r.idoperatore);
+    const ammessi = OPERATORI_AMMESSI[r.idsensore];
+    if (ammessi && !ammessi.has(op)) continue;
+    const chiave = r.idsensore + '|' + op;
     const k = chiaveOra(new Date(r.data.length > 19 ? r.data + 'Z' : r.data + '.000Z'));
-    per[r.idsensore] = per[r.idsensore] || new Map();
-    const m = per[r.idsensore];
+    per[chiave] = per[chiave] || new Map();
+    const m = per[chiave];
     if (!m.has(k)) m.set(k, []);
     m.get(k).push(v);
   }
@@ -218,11 +231,11 @@ function serieOsservate(per) {
 
   // temperatura: media pesata per vicinanza, riportata a 262 m con gradiente 6.5 gradi al km
   const chiaviT = new Set();
-  tempSt.forEach(s => (per[s.id] || new Map()).forEach((_, k) => chiaviT.add(k)));
+  tempSt.forEach(s => (per[s.chiave] || new Map()).forEach((_, k) => chiaviT.add(k)));
   for (const k of chiaviT) {
     const coppie = [];
     for (const s of tempSt) {
-      const vals = (per[s.id] || new Map()).get(k);
+      const vals = (per[s.chiave] || new Map()).get(k);
       if (!vals || !vals.length) continue;
       const t = media(vals) + (s.quota - SITO.quota) * 0.0065;
       coppie.push([t, 1 / Math.pow(s.km, 1.4)]);
@@ -233,11 +246,11 @@ function serieOsservate(per) {
 
   // pioggia: media pesata dei pluviometri, e scarto fra pluviometri come misura di quanto è disomogenea
   const chiaviP = new Set();
-  pioSt.forEach(s => (per[s.id] || new Map()).forEach((_, k) => chiaviP.add(k)));
+  pioSt.forEach(s => (per[s.chiave] || new Map()).forEach((_, k) => chiaviP.add(k)));
   for (const k of chiaviP) {
     const coppie = [], grezzi = [];
     for (const s of pioSt) {
-      const vals = (per[s.id] || new Map()).get(k);
+      const vals = (per[s.chiave] || new Map()).get(k);
       if (!vals || !vals.length) continue;
       const mm = somma(vals);
       grezzi.push({ nome: s.nome, mm });
@@ -247,10 +260,10 @@ function serieOsservate(per) {
     if (v !== null) { out.pioggia.set(k, v); out.perStazione[k] = grezzi; }
   }
 
-  for (const [tipo, chiave] of [['umidita', 'umidita'], ['vento', 'vento']]) {
-    const st = STAZIONI.filter(s => s.tipo === tipo);
-    for (const s of st) {
-      (per[s.id] || new Map()).forEach((vals, k) => { if (!out[chiave].has(k)) out[chiave].set(k, media(vals)); });
+  for (const tipo of ['umidita', 'vento', 'raffica']) {
+    out[tipo] = out[tipo] || new Map();
+    for (const s of STAZIONI.filter(x => x.tipo === tipo)) {
+      (per[s.chiave] || new Map()).forEach((vals, k) => { if (!out[tipo].has(k)) out[tipo].set(k, media(vals)); });
     }
   }
   return out;
@@ -282,6 +295,29 @@ function spostaSerie(m, ore) {
   const n = new Map();
   m.forEach((v, k) => n.set(chiaveDa(k, ore), v));
   return n;
+}
+
+/* ---------------- temperatura percepita ---------------- */
+/* Formula di Steadman, l Apparent Temperature del servizio meteorologico
+   australiano: vale su tutto l arco delle temperature senza cambiare formula
+   fra il freddo e il caldo, e usa esattamente cio che qui si misura davvero,
+   cioe temperatura, umidita e vento.
+   AT = T + 0.33 * pressione di vapore - 0.70 * vento - 4.00                 */
+function percepita(t, umidita, ventoMs) {
+  if (t === null || t === undefined || !isFinite(t)) return null;
+  const rh = (umidita === null || umidita === undefined || !isFinite(umidita)) ? 65 : chiudi(umidita, 1, 100);
+  const ws = (ventoMs === null || ventoMs === undefined || !isFinite(ventoMs)) ? 0 : Math.max(0, ventoMs);
+  const vapore = (rh / 100) * 6.105 * Math.exp(17.27 * t / (237.7 + t));
+  return t + 0.33 * vapore - 0.70 * ws - 4.00;
+}
+
+/* Perche la percepita si scosta dalla misurata, detto in poche parole. */
+function motivoPercepita(t, valore, umidita, ventoMs) {
+  if (valore === null || t === null) return null;
+  const d = valore - t;
+  if (Math.abs(d) < 1) return null;
+  if (d < 0) return (ventoMs >= 2.5) ? 'per il vento' : "per l'aria secca";
+  return "per l'umidità";
 }
 
 /* ---------------- regimi e correzioni ---------------- */
@@ -959,7 +995,7 @@ if (typeof module !== 'undefined' && module.exports) {
     chiaveOra, chiaveDa, dataDaChiave, num, media, somma, chiudi, mediaPesata, quantilePesato, medianaPesata,
     scarica, scaricaConRitento, urlOpenMeteo, urlArpa,
     leggiMultiModello, leggiEnsemble, aggregaArpa, serieOsservate, controllaAllineamento, spostaSerie,
-    regimeDi, smorza, calcolaPagella, maeInterpolato, pesiFamiglia,
+    regimeDi, smorza, calcolaPagella, maeInterpolato, pesiFamiglia, percepita, motivoPercepita,
     curvaAffidabilita, applicaCurva, ricostruisciPassato, taraturaFascia, sfasamentoPioggia, disomogeneitaPioggia,
     costruisciConsenso, aggregaGiorni, finestrePioggia, verificaStorica
   };

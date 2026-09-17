@@ -143,6 +143,12 @@ a{color:var(--blu)}
   line-height:.86; letter-spacing:-.05em; font-variant-numeric:tabular-nums;
 }
 .cifra sup{font-size:.3em; font-weight:500; color:var(--ink-3); letter-spacing:0; vertical-align:top; top:.5em; position:relative}
+.percepita{
+  margin-top:10px; font-family:var(--mono); font-size:12.5px; color:var(--ink-3);
+  display:flex; align-items:baseline; gap:6px; flex-wrap:wrap;
+}
+.percepita b{color:var(--ink); font-weight:600; font-size:16px; font-variant-numeric:tabular-nums}
+.percepita span{font-size:11px; opacity:.85}
 .ora-lato{display:flex; flex-direction:column; gap:5px; padding-top:4px}
 .ora-desc{display:flex; align-items:center; gap:8px; font-size:15px; color:var(--ink); font-weight:600}
 .ora-scarto{font-family:var(--mono); font-size:12.5px; color:var(--ink-3); line-height:1.45}
@@ -203,6 +209,7 @@ a{color:var(--blu)}
 .cella-ora .qora{font-family:var(--mono); font-size:11px; color:var(--ink-3); letter-spacing:.02em}
 
 .cella-ora .qt{font-family:var(--mono); font-size:15px; font-weight:600; font-variant-numeric:tabular-nums}
+.cella-ora .qperc{font-family:var(--mono); font-size:9.5px; color:var(--ink-3); white-space:nowrap; min-height:12px}
 .cella-ora .qp{font-family:var(--mono); font-size:10.5px; color:var(--blu); min-height:14px}
 .cella-ora .qp.zero{color:transparent}
 .cella-ora svg{color:var(--ink-2)}
@@ -506,6 +513,14 @@ button.pulsante:focus-visible{outline:2px solid var(--blu); outline-offset:2px}
       <div class="blocco">
         <h3>La verità di riferimento</h3>
         <p>Le misure vengono dalle stazioni ARPA Lombardia più vicine, con un dato ogni dieci minuti: <span id="metodo-stazioni">Torre Boldone, Bergamo via Goisis, Trescore Balneario</span>. Sono termometri e pluviometri veri, non rianalisi di modello.</p>
+      </div>
+      <div class="blocco">
+        <h3>La temperatura percepita</h3>
+        <p>Segue la formula di Steadman, quella che il servizio meteorologico australiano chiama Apparent Temperature: vale su tutto l arco delle temperature senza dover cambiare metodo fra il freddo e il caldo, e usa soltanto cose che qui vengono misurate davvero, cioè temperatura, umidità e vento. L umidità alta la alza perché il sudore evapora peggio, il vento la abbassa perché porta via calore. Con aria secca e ferma coincide quasi con il termometro.</p>
+      </div>
+      <div class="blocco">
+        <h3>Quando le stazioni sono indietro</h3>
+        <p>ARPA a volte pubblica con due o tre ore di ritardo. In quel caso il numero grande non è più la misura vecchia ma il consenso dei modelli per l ora corrente, che a quel punto è la risposta più vicina al vero, e l intestazione lo dichiara. L ultima misura disponibile resta scritta accanto, con la sua ora e il ritardo accumulato.</p>
       </div>
       <div class="blocco">
         <h3>Correzione di sito</h3>
