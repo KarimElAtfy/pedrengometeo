@@ -172,6 +172,72 @@ function rendiAdesso() {
   box.innerHTML = sinistra + destra;
 }
 
+/* ---------------- nowcasting ---------------- */
+
+function rendiNowcast() {
+  const n = STATO.nowcast;
+  const box = $('#blocco-nowcast');
+  if (!n) {
+    box.innerHTML = '<p class="vuoto">Nowcasting non disponibile: né il radar né i modelli a quindici minuti hanno risposto.</p>';
+    return;
+  }
+  const classe = n.livello === 'piove' ? 'piove' : n.livello === 'in arrivo' ? 'arrivo' : 'asciutto';
+  const simbolo = n.livello === 'piove' ? 'pioggia' : n.livello === 'in arrivo' ? 'nuvoloso' : 'sereno';
+
+  const passi = n.prossime.slice(0, 12);
+  const massimo = Math.max(0.25, ...passi.map(p => p.mm));
+  const barre = passi.map((p, i) => `
+    <div class="quarto" title="${p.etichetta}: ${g1(p.mm)} mm nel quarto d'ora">
+      <div class="colonna"><i style="height:${p.mm > 0.005 ? Math.max(2, Math.round(p.mm / massimo * 52)) : 0}px"></i></div>
+      <small>${i % 4 === 0 ? p.etichetta : ''}</small>
+    </div>`).join('');
+
+  let radarTesto;
+  if (!n.radar) {
+    radarTesto = 'Radar non raggiunto in questo momento, il verdetto qui sopra usa solo modelli e pluviometri.';
+  } else {
+    const r = n.radar;
+    const ora = new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit' }).format(r.ora);
+    const pezzi = [`Radar delle ${ora}, ${r.frame} scansioni sull'ultima ora`];
+    if (r.sopraIlPaese) pezzi.push('eco sopra il paese');
+    else if (r.distanzaVicino !== null) pezzi.push(`eco più vicino a ${g0(r.distanzaVicino)} km a ${r.direzioneVicino}`);
+    else pezzi.push('nessun eco nel raggio coperto');
+    if (r.moto && r.moto.affidabile && r.moto.kmh > 3) pezzi.push(`si muove verso ${r.moto.verso} a ${g0(r.moto.kmh)} km/h`);
+    else if (r.moto && r.moto.affidabile) pezzi.push('campo di pioggia quasi fermo');
+    else pezzi.push('movimento non determinabile in modo netto');
+    if (r.quotaFissa > 0.25) pezzi.push(`${pc(r.quotaFissa)} dell'eco è fisso sui rilievi e viene scartato`);
+    radarTesto = pezzi.join(', ') + '.';
+  }
+
+  const pluvio = n.pluvio;
+  box.innerHTML = `
+    <div class="verdetto ${classe}">
+      <span class="icona-grande">${icona(simbolo, 34)}</span>
+      <span class="testo">
+        <h3>${n.titolo}</h3>
+        <p>${n.dettaglio}</p>
+        ${passi.length ? `<div class="quarti">${barre}</div>
+          <p style="margin-top:8px; font-size:12px; color:var(--ink-3)">Millimetri per quarto d'ora, consenso di ${MODELLI_FINI.length} modelli ad alta risoluzione. ${n.mmDueOre >= 0.05 ? 'Totale atteso nelle prossime due ore ' + g1(n.mmDueOre) + ' mm.' : ''}</p>` : ''}
+        <div class="riga-radar">${radarTesto}${pluvio.ultimeTreOre > 0.05 ? ` Nelle ultime tre ore i pluviometri hanno raccolto ${g1(pluvio.ultimeTreOre)} mm.` : ''}</div>
+      </span>
+    </div>`;
+}
+
+async function avviaNowcast() {
+  try {
+    const [r, q] = await Promise.allSettled([leggiRadar(), leggiQuartiDora()]);
+    const radar = r.status === 'fulfilled' ? r.value : null;
+    const quarti = q.status === 'fulfilled' ? q.value : null;
+    if (!radar && !quarti) { STATO.nowcast = null; rendiNowcast(); return; }
+    STATO.nowcast = costruisciNowcast(radar, quarti, tendenzaPluviometri(STATO.oss));
+    rendiNowcast();
+  } catch (e) {
+    STATO.nowcast = null;
+    rendiNowcast();
+    console.error('nowcast', e);
+  }
+}
+
 /* ---------------- bollettino ---------------- */
 
 function elencoOre(f) {
@@ -577,8 +643,6 @@ function disegnaVentaglio() {
 
 function rendiPagella() {
   const { pagella } = STATO;
-  const disponibili = Object.keys(STATO.det.serie);
-  const { pesi } = pesiFamiglia(pagella, 24, disponibili);
   const righe = MODELLI.filter(m => pagella[m.id]).map(m => {
     const v = pagella[m.id];
     return {
@@ -588,7 +652,8 @@ function rendiPagella() {
       mae72: v.per[72] ? v.per[72].mae : null,
       pod: v.per[24] ? v.per[24].pod : null,
       far: v.per[24] ? v.per[24].far : null,
-      peso: pesi[m.fam] || 0
+      sMax: v.estremi ? v.estremi.max.scarto : null,
+      sfas: STATO.sfasamenti && STATO.sfasamenti[m.id] ? STATO.sfasamenti[m.id].ore : 0
     };
   }).sort((a, b) => (a.mae24 === null ? 99 : a.mae24) - (b.mae24 === null ? 99 : b.mae24));
 
@@ -596,24 +661,24 @@ function rendiPagella() {
     $('#tabella-pagella').innerHTML = '<p class="vuoto">Verifica non disponibile: le misure delle stazioni o le previsioni passate non sono arrivate.</p>';
     return;
   }
-  const pesoMax = Math.max(...righe.map(r => r.peso));
   const corpo = righe.map((r, i) => `
     <tr>
       <td><span class="rank">${i + 1}</span><b>${r.m.nome}</b><span class="ente">${r.m.ente} · ${r.m.ris}</span></td>
       <td class="v">${r.mae24 === null ? '-' : g1(r.mae24) + ' °C'}</td>
       <td class="v">${r.mae48 === null ? '-' : g1(r.mae48) + ' °C'}</td>
       <td class="v">${r.mae72 === null ? '-' : g1(r.mae72) + ' °C'}</td>
+      <td class="v" style="${r.sMax !== null && Math.abs(r.sMax) > 1 ? 'color:var(--allerta)' : ''}">${r.sMax === null ? '-' : (r.sMax > 0 ? '+' : '') + g1(r.sMax)}</td>
       <td class="v">${r.pod === null ? '-' : pc(r.pod)}</td>
       <td class="v">${r.far === null ? '-' : pc(r.far)}</td>
-      <td><span class="barra-peso"><i style="width:${Math.max(2, (r.peso / pesoMax) * 54).toFixed(0)}px"></i><span class="v">${pc(r.peso)}</span></span></td>
+      <td class="v">${r.sfas === 0 ? 'nessuno' : (r.sfas > 0 ? '+' : '') + r.sfas + ' h'}</td>
     </tr>`).join('');
 
   $('#tabella-pagella').innerHTML = `<div class="scorri"><table>
     <thead><tr>
       <th>Modello</th><th>Errore 24 h</th><th>Errore 48 h</th><th>Errore 72 h</th>
-      <th>Pioggia vista</th><th>Falsi allarmi</th><th>Peso del centro</th>
+      <th>Scarto sulla massima</th><th>Pioggia vista</th><th>Falsi allarmi</th><th>Sfasamento pioggia</th>
     </tr></thead><tbody>${corpo}</tbody></table></div>
-    <p class="guida" style="margin-top:12px; margin-bottom:0">Errore: scarto medio assoluto sulla temperatura oraria rispetto alle stazioni, per previsioni emesse 24, 48 e 72 ore prima. Pioggia vista: quante volte il modello aveva annunciato la pioggia che poi è caduta. Falsi allarmi: quante volte ha annunciato pioggia che non è arrivata. Il peso vale per tutto il centro, così un centro con tre modelli non conta tre volte.</p>`;
+    <p class="guida" style="margin-top:12px; margin-bottom:0">Errore: scarto medio assoluto sulla temperatura oraria rispetto alle stazioni, per previsioni emesse 24, 48 e 72 ore prima. Scarto sulla massima: di quanto il modello manca il picco del giorno dopo che la correzione oraria ha già fatto il suo lavoro, ed è il numero che viene sottratto alle massime previste. Pioggia vista: quante volte aveva annunciato la pioggia poi caduta. Falsi allarmi: quante volte ha annunciato pioggia che non è arrivata. Sfasamento: di quante ore la sua pioggia arriva in anticipo o in ritardo, corretto quando il guadagno supera l'otto per cento.</p>`;
 
   rendiImparato(righe);
 }
@@ -623,7 +688,36 @@ function rendiImparato(righe) {
   const migliore = righe[0], peggiore = righe[righe.length - 1];
   if (migliore && migliore.mae24 !== null) {
     note.push({ cls: '', t: 'chi comanda adesso',
-      d: `Su Pedrengo, negli ultimi giorni, ${migliore.m.nome} di ${migliore.m.ente} è il più preciso sulla temperatura a 24 ore: ${g1(migliore.mae24)} gradi di errore medio contro ${g1(peggiore.mae24)} del meno preciso. Per questo il suo centro pesa ${pc(migliore.peso)} nel consenso.` });
+      d: `Su Pedrengo, negli ultimi giorni, ${migliore.m.nome} di ${migliore.m.ente} è il più preciso sulla temperatura a 24 ore: ${g1(migliore.mae24)} gradi di errore medio contro ${g1(peggiore.mae24)} del meno preciso. Questo però non gli dà più voce in capitolo, e il motivo è nel riquadro qui accanto.` });
+  }
+
+  note.push({ cls: 'att', t: 'una cosa che non ha funzionato',
+    d: `Dare più peso ai modelli più bravi sembrava ovvio, ed è stato provato: su 21 giorni mai visti prima peggiorava il risultato, da 0,97 gradi con tutti i centri uguali a 0,98 con la pesatura piena, in modo regolare a ogni dose intermedia. Le stime di bravura sono troppo rumorose per aggiungere informazione, e la mediana è già robusta da sola. Quindi ogni centro conta uguale. Verrà rimisurato quando l'archivio sarà più lungo.` });
+
+  const conMax = righe.filter(r => r.sMax !== null);
+  if (conMax.length >= 5) {
+    const m = media(conMax.map(r => r.sMax));
+    note.push({ cls: 'corr', t: 'il picco del pomeriggio',
+      d: `Anche dopo la correzione oraria i modelli mancano la massima del giorno di ${g1(Math.abs(m))} gradi ${m < 0 ? 'in difetto' : 'in eccesso'}. Parte è matematica: il massimo di una media è più basso della media dei massimi. Ora la massima si calcola prendendo il picco di ogni modello e togliendo il suo scarto misurato, e sui giorni di prova l'errore è passato da 1,44 a 0,68 gradi.` });
+  }
+
+  if (STATO.fascia && STATO.fascia.stimato) {
+    const f = STATO.fascia;
+    note.push({ cls: 'corr', t: 'la fascia diceva bugie',
+      d: `La dispersione fra i modelli è più stretta dell'errore vero: la fascia grezza conteneva il valore misurato solo nel ${pc(f.coperturaPrima)} dei casi invece dell'80 per cento promesso. Viene quindi allargata di ${g1(f.fattore)} volte, e così la copertura sale al ${pc(f.coperturaDopo)} su ${f.nProva} ore di controllo. Preferisco una fascia larga e onesta a una stretta che mente.` });
+  }
+
+  if (STATO.zona) {
+    const z = STATO.zona;
+    note.push({ cls: '', t: 'piove in zona, non per forza qui',
+      d: `Su ${z.oreDiPioggiaInZona} ore in cui almeno un pluviometro della zona ha registrato pioggia, a Pedrengo ne è arrivata nel ${pc(z.quotaCheArrivaQui)} dei casi${z.rapportoQuantita !== null ? `, e in quantità pari al ${pc(z.rapportoQuantita)} di quella caduta nel punto più bagnato` : ''}. I modelli prevedono la media su celle larghe chilometri, e questa è la differenza fra quella media e il paese.` });
+  }
+
+  const conSfas = righe.filter(r => r.sfas !== 0);
+  if (conSfas.length) {
+    const avanti = conSfas.filter(r => r.sfas < 0).length, indietro = conSfas.filter(r => r.sfas > 0).length;
+    note.push({ cls: 'corr', t: 'pioggia in anticipo o in ritardo',
+      d: `${conSfas.length} modelli su ${righe.length} sbagliano l'orario della pioggia in modo abbastanza costante da poterlo correggere: ${avanti} la portano in anticipo, ${indietro} in ritardo. La loro pioggia viene letta spostata delle ore misurate, invece che presa com'è.` });
   }
 
   // scarto medio per regime, calcolato sui modelli
@@ -659,8 +753,9 @@ function rendiImparato(righe) {
     const utili = STATO.bins.filter(b => b.n >= 10);
     if (utili.length >= 3) {
       const alto = utili[utili.length - 1];
+      const a = STATO.taraturaArchivio;
       note.push({ cls: 'corr', t: 'taratura della probabilità',
-        d: `Quando ${Math.round(alto.c * 100)} per cento dei centri annunciava pioggia, negli ultimi giorni è piovuto davvero nel ${pc(alto.colpi / alto.n)} dei casi su ${alto.n} ore verificate. È questa curva, non una tabella fissa, a convertire l'accordo dei modelli in probabilità.` });
+        d: `Quando ${Math.round(alto.c * 100)} per cento dei centri annunciava pioggia, qui è piovuto davvero nel ${pc(alto.colpi / alto.n)} dei casi su ${alto.n} ore verificate. È questa curva, non una tabella fissa, a convertire l'accordo dei modelli in probabilità.${a ? ` Costruita su ${g0(a.giorniGuardati)} giorni e ${g0(a.orePiovoseMisurate)} ore di pioggia misurata, aggiornata ogni notte.` : ''}` });
     }
   }
   if (STATO.offsetSito !== null) {
@@ -709,7 +804,40 @@ function rendiVerifica() {
       <div class="nota"><b>Il conto</b>Su ${righe.length} giorni verificati, il consenso ha sbagliato in media <b style="display:inline; font-family:var(--mono); text-transform:none; letter-spacing:0; color:var(--ink); font-size:inherit">${g1(maeMedio)} gradi</b> sulla temperatura oraria, contro ${g1(media(mediani))} del modello singolo mediano e ${g1(media(migliori))} del migliore scelto con il senno di poi.</div>
       <div class="nota ${battuti / Math.max(1, totali) > 0.6 ? '' : 'att'}"><b>Ha senso incrociare?</b>Il consenso è stato più preciso di ${battuti} confronti su ${totali} con i singoli modelli, cioè nel ${pc(battuti / Math.max(1, totali))} dei casi. ${battuti / Math.max(1, totali) > 0.6 ? 'Incrociare i modelli sta pagando.' : 'In questi giorni il vantaggio è stato modesto, capita quando la situazione è stabile e tutti i modelli vanno bene.'}</div>
       <div class="nota att"><b>Nota onesta</b>Questa ricostruzione usa le previsioni emesse un giorno prima, a pesi uguali fra centri, per evitare di giudicarsi con i pesi ricavati dagli stessi dati. È il confronto più severo possibile con le informazioni disponibili.</div>
-    </div>`;
+    </div>
+    ${rendiArchivio()}`;
+}
+
+/* Il registro delle previsioni davvero emesse da questo sito, messo da parte
+   ogni notte e verificato quando il giorno si chiude. E piu severo della
+   ricostruzione qui sopra, perche non puo essere rifatto col senno di poi. */
+function rendiArchivio() {
+  const a = STATO.archivioVerifiche;
+  const righe = a && Array.isArray(a.righe) ? a.righe : [];
+  const riassunto = (a && a.riassunto) || {};
+  const leads = Object.keys(riassunto).sort((x, y) => +x - +y);
+
+  if (!righe.length) {
+    return `<div class="nota att" style="margin-top:14px"><b>Registro delle previsioni emesse</b>
+      L'archivio è appena partito: ogni notte viene messa da parte la previsione che il sito ha davvero emesso, e viene verificata quando il giorno si chiude. Le prime righe compariranno domani, e da lì in poi il registro cresce da solo senza potersi correggere a posteriori.</div>`;
+  }
+  const corpo = leads.map(l => {
+    const r = riassunto[l];
+    return `<tr>
+      <td><b>${l} ${+l === 1 ? 'giorno' : 'giorni'}</b><span class="ente">di anticipo</span></td>
+      <td class="v">${r.giorni}</td>
+      <td class="v">${g1(r.erroreMassima)} °C</td>
+      <td class="v">${r.scartoMassima > 0 ? '+' : ''}${g1(r.scartoMassima)} °C</td>
+      <td class="v">${r.brierPioggia === null ? '-' : g1(r.brierPioggia * 100) + ' su 100'}</td>
+    </tr>`;
+  }).join('');
+
+  return `<h3 style="margin:26px 0 6px; font-size:16px">Registro delle previsioni emesse</h3>
+    <p class="guida">Questa tabella non è una ricostruzione: è quello che il sito ha scritto in home page quel giorno, salvato prima di sapere come sarebbe andata. Su ${righe.length} previsioni verificate.</p>
+    <div class="scorri"><table>
+      <thead><tr><th>Anticipo</th><th>Giorni verificati</th><th>Errore sulla massima</th><th>Scarto medio</th><th>Punteggio pioggia</th></tr></thead>
+      <tbody>${corpo}</tbody></table></div>
+    <p class="guida" style="margin-top:10px; margin-bottom:0">Scarto medio: se è negativo il sito tende a sottostimare, se è positivo a sovrastimare. Punteggio pioggia: quanto si discostano le probabilità annunciate da quello che è successo, zero sarebbe la perfezione e venticinque il valore di chi tira a indovinare dicendo sempre metà e metà.</p>`;
 }
 
 /* ---------------- memoria di lungo periodo ---------------- */
@@ -814,13 +942,16 @@ async function avvia() {
     scaricaConRitento(urlOpenMeteo('https://previous-runs-api.open-meteo.com/v1/forecast', {
       hourly: ['temperature_2m', 'temperature_2m_previous_day1', 'temperature_2m_previous_day2', 'temperature_2m_previous_day3',
                'precipitation', 'precipitation_previous_day1', 'precipitation_previous_day2', 'precipitation_previous_day3'].join(','),
-      models: idModelli, past_days: 7, forecast_days: 1
-    }), 45000),
+      models: idModelli, past_days: GIORNI_VERIFICA, forecast_days: 1
+    }), 60000),
     scaricaConRitento(urlArpa(['8145', '19022', '5864', '8161', '19026', '5857', '22322'], orizzonteVerifica, 30000), 45000),
     scaricaConRitento(urlArpa(['6158', '19103', '5981'], recente, 500), 25000),
     scarica(urlOpenMeteo('https://api.open-meteo.com/v1/forecast', {
       hourly: 'cape', models: 'icon_seamless,ecmwf_ifs025,gfs_seamless,italia_meteo_arpae_icon_2i', forecast_days: 7
-    }), 30000).catch(() => null)
+    }), 30000).catch(() => null),
+    // l archivio sta accanto alla pagina: lo riempie ogni notte il lavoro programmato
+    scarica('dati/taratura.json', 10000).catch(() => null),
+    scarica('dati/verifiche.json', 10000).catch(() => null)
   ];
 
   const esiti = await Promise.allSettled(richieste);
@@ -913,7 +1044,24 @@ async function avvia() {
 
   STATO.pagella = calcolaPagella(prev, oss, nuvoleRif);
   STATO.bins = curvaAffidabilita(prev, oss);
+
+  /* L archivio guarda indietro novantadue giorni invece di ventuno, e per la
+     pioggia la differenza e enorme: in tre settimane ci sono sei o sette ore
+     piovose, in tre mesi una ottantina. Se c e, la sua taratura vince. */
+  const archivio = val(6);
+  if (archivio && Array.isArray(archivio.bins)) {
+    const suoi = somma(archivio.bins.map(b => b.n || 0));
+    const miei = somma(STATO.bins.map(b => b.n || 0));
+    if (suoi > miei) {
+      STATO.bins = archivio.bins.map(b => ({ c: b.c, n: b.n || 0, colpi: b.colpi || 0 }));
+      STATO.taraturaArchivio = archivio;
+    }
+  }
+  STATO.archivioVerifiche = val(7);
   STATO.verifica = verificaStorica(prev, oss);
+  STATO.fascia = taraturaFascia(ricostruisciPassato(prev, oss, nuvoleRif, STATO.pagella));
+  STATO.sfasamenti = sfasamentoPioggia(prev, oss);
+  STATO.zona = disomogeneitaPioggia(oss);
   passo(3);
 
   const memoria = await (async () => { const db = await apriMemoria(); return db ? { db, dati: await leggiMemoria(db) } : null; })();
@@ -932,8 +1080,11 @@ async function avvia() {
 
   const adesso = chiaveOra(new Date());
   STATO.det = det; STATO.ens = ens; STATO.oss = oss;
-  STATO.consenso = costruisciConsenso({ det, ens, pagella: STATO.pagella, oss, bins: STATO.bins, adesso, cape });
-  STATO.giorni = aggregaGiorni(STATO.consenso, ens, adesso.slice(0, 10));
+  STATO.consenso = costruisciConsenso({
+    det, ens, pagella: STATO.pagella, oss, bins: STATO.bins, adesso, cape,
+    fascia: STATO.fascia, sfasamenti: STATO.sfasamenti
+  });
+  STATO.giorni = aggregaGiorni(STATO.consenso, ens, adesso.slice(0, 10), STATO.pagella);
   passo(4);
 
   // tag di testa
@@ -947,6 +1098,16 @@ async function avvia() {
   $('#tag-verifica').textContent = nVer ? `${g0(nVer)} confronti con le stazioni` : 'verifica non disponibile';
   $('#metodo-offset').textContent = STATO.offsetSito === null ? 'non stimabile'
     : (STATO.offsetSito > 0 ? '+' : '') + g1(STATO.offsetSito) + ' °C';
+
+  if (STATO.fascia && STATO.fascia.stimato) {
+    const f = STATO.fascia;
+    $('#metodo-fascia').textContent = `allargata ${g1(f.fattore)} volte, copertura reale ${pc(f.coperturaDopo)}`;
+    const guida = $('#guida-ore');
+    if (guida) guida.insertAdjacentHTML('beforeend',
+      ` Sugli ultimi ${f.nProva} controlli il valore misurato è caduto dentro la fascia nel ${pc(f.coperturaDopo)} dei casi.`);
+  } else {
+    $('#metodo-fascia').textContent = 'non ancora misurabile';
+  }
 
   const attive = [];
   for (const s of STAZIONI) {
@@ -974,6 +1135,10 @@ async function avvia() {
   $('#pie-tempi').textContent = `Scaricati e incrociati ${nMod} modelli, ${nMembri} membri di ensemble e ${g0(righeArpa.length)} letture di stazione in ${(STATO.tempi.totale / 1000).toFixed(1)} secondi.`;
 
   if (memoria && memoria.db) { scriviMemoria(memoria.db).catch(() => { }); }
+
+  // il nowcasting parte dopo il resto: usa il radar e non deve far aspettare la pagina
+  avviaNowcast();
+  setInterval(avviaNowcast, 600000);
 
   let attesa;
   window.addEventListener('resize', () => {

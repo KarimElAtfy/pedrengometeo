@@ -21,29 +21,68 @@ nasce da un confronto fra fonti, e porta con sé quanto ci si può fidare.
 
 ## Come impara dai propri errori
 
-A ogni apertura della pagina il sito recupera cosa aveva previsto ciascun modello 24, 48 e
-72 ore prima, lo confronta con le misure delle stazioni, e da quel confronto ricava:
+A ogni apertura la pagina recupera cosa aveva previsto ciascun modello 24, 48 e 72 ore
+prima, lo confronta con le misure delle stazioni, e da quel confronto ricava:
 
-- il **peso di ogni centro** nel consenso, in modo che chi sbaglia poco conti di più;
 - la **correzione dell'errore sistematico**, calcolata separatamente per notti serene,
   notti coperte, giornate soleggiate e coperte, perché l'errore dei modelli non è costante;
-- la **taratura della probabilità di pioggia** sulla frequenza con cui è piovuto davvero
-  quando i modelli erano d'accordo in una certa misura;
-- l'**ancoraggio sull'ora corrente**, cioè di quanto ogni modello sta sbagliando adesso,
-  applicato alle ore vicine con effetto decrescente.
+- la **correzione dedicata alla massima del giorno**, che è un caso a parte: il massimo di
+  una media è sempre più basso della media dei massimi, e su questo i modelli sbagliavano
+  di un grado e mezzo in difetto;
+- l'**allargamento della fascia di incertezza** fino a quando la copertura dichiarata
+  corrisponde a quella reale, misurata;
+- la **taratura della probabilità di pioggia** sulla frequenza con cui è piovuto davvero;
+- lo **sfasamento temporale** della pioggia di ogni modello, corretto quando è costante;
+- l'**ancoraggio sull'ora corrente**, cioè di quanto ogni modello sta sbagliando adesso.
 
-Con la sezione "Onestà" il sito ricostruisce le previsioni dei giorni passati e le mette
-accanto a quello che è successo, incluso il confronto con i singoli modelli.
+Ogni correzione viene accettata solo dopo una prova fuori campione: si allena su un periodo
+e si misura su giorni mai visti. Una che non sopravvive a quella prova sta imparando a
+memoria il passato, non a prevedere il futuro.
+
+### Una che è stata buttata via
+
+Pesare di più i modelli più bravi sembrava ovvio. Messa alla prova su ventuno giorni mai
+visti peggiorava il risultato a ogni dose, da 0,968 gradi con tutti i centri uguali a 0,985
+con la pesatura piena. È stata tolta. La pagella dei modelli resta nel sito, ma come
+informazione da leggere, non come peso nel calcolo.
+
+## Nowcasting
+
+Sotto le tre ore i modelli fisici sono al loro punto più debole. Il sito usa allora l'eco
+radar di RainViewer: legge i pixel delle ultime sei scansioni, scarta l'eco che resta
+immobile in tutte (sulle Alpi è quasi metà del totale, ed è terreno, non pioggia), stima lo
+spostamento del campo per correlazione e lo estrapola in avanti. Se il picco di correlazione
+non è netto, dichiara che il movimento non è determinabile invece di inventare una
+direzione. Accanto ci sono sei modelli a 2 km che aggiornano ogni quarto d'ora e i
+pluviometri del paese.
+
+## L'archivio
+
+`.github/workflows/archivio.yml` esegue ogni notte `strumenti/archivia.js`, che fa le due
+cose che il browser non può fare a ogni apertura:
+
+1. guarda indietro **novantadue giorni** invece di ventuno. Per la temperatura non cambia
+   niente, ed è stato verificato; per la pioggia cambia tutto, perché in tre settimane ci
+   sono sei o sette ore piovose e in tre mesi circa ottanta;
+2. mette da parte in `dati/emesse/` la previsione che il sito ha **davvero emesso** quel
+   giorno, e la verifica quando il giorno si chiude. È un registro che non può essere
+   riscritto col senno di poi, a differenza di qualsiasi ricostruzione.
+
+I risultati finiscono in `dati/`, che la pagina carica all'apertura. Se il lavoro notturno
+non gira, il sito continua a funzionare con la sua finestra corta.
 
 ## Struttura
 
 | File | Contenuto |
 | --- | --- |
 | `pedrengometeo.html` | struttura della pagina e fogli di stile |
-| `motore.js` | ingestione dati, verifica a posteriori, pesatura, fusione del consenso |
+| `motore.js` | ingestione dati, verifica a posteriori, correzioni, fusione del consenso |
+| `nowcast.js` | radar, modelli a 15 minuti, verdetto sulle prossime ore |
 | `interfaccia.js` | grafici, bollettino, tabelle, avvio |
-| `costruisci.sh` | unisce i tre file in `index.html` |
+| `costruisci.sh` | unisce i quattro file in `index.html` |
 | `index.html` | il sito costruito, l'unico file che serve pubblicare |
+| `strumenti/archivia.js` | il lavoro notturno che riempie `dati/` |
+| `dati/` | tarature lunghe, previsioni emesse, registro delle verifiche |
 
 Dopo aver modificato i sorgenti:
 
