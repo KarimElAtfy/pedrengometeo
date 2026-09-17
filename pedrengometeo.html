@@ -195,6 +195,32 @@ td.v{font-family:var(--mono); font-variant-numeric:tabular-nums}
 .metodo h3{font-size:14px; color:var(--ink); margin:0 0 5px}
 .metodo .blocco{break-inside:avoid; margin-bottom:18px}
 
+/* nowcasting */
+.verdetto{
+  display:flex; gap:16px; align-items:flex-start; background:var(--surface);
+  border:1px solid var(--line); border-left:4px solid var(--ink-3);
+  border-radius:var(--r); padding:16px 18px; box-shadow:var(--ombra);
+}
+.verdetto.piove{border-left-color:var(--blu)}
+.verdetto.arrivo{border-left-color:var(--attesa)}
+.verdetto.asciutto{border-left-color:var(--ok)}
+.verdetto .testo{flex:1; min-width:0}
+.verdetto h3{font-size:18px; margin-bottom:5px; letter-spacing:-.015em}
+.verdetto p{color:var(--ink-2); font-size:14px; line-height:1.5}
+.verdetto .icona-grande{color:var(--ink-2); flex:none; padding-top:2px}
+.verdetto.piove .icona-grande{color:var(--blu)}
+.verdetto.arrivo .icona-grande{color:var(--attesa)}
+.verdetto.asciutto .icona-grande{color:var(--ok)}
+.quarti{display:flex; gap:3px; margin-top:16px; align-items:flex-end; overflow-x:auto; padding-bottom:4px}
+.quarto{flex:1 1 24px; display:flex; flex-direction:column; align-items:center; gap:5px; min-width:22px}
+.quarto .colonna{width:100%; height:52px; display:flex; align-items:flex-end; background:var(--surface-3); border-radius:3px; overflow:hidden}
+.quarto .colonna i{display:block; width:100%; background:var(--blu)}
+.quarto small{font-family:var(--mono); font-size:9.5px; color:var(--ink-3); white-space:nowrap}
+.riga-radar{
+  margin-top:14px; padding-top:12px; border-top:1px solid var(--line);
+  font-size:12.5px; color:var(--ink-3); font-family:var(--mono); line-height:1.5;
+}
+
 /* elementi dei grafici */
 .gx{stroke:var(--line-2); stroke-width:1}
 .gx-lieve{stroke:var(--line); stroke-width:1; stroke-dasharray:2 4}
@@ -245,7 +271,7 @@ button.pulsante:focus-visible{outline:2px solid var(--blu); outline-offset:2px}
 
   <header class="testata">
     <h1>Il meteo di Pedrengo, deciso dopo aver guardato i dati</h1>
-    <p class="sotto">Diciotto modelli fisici di tredici centri meteorologici nazionali, 122 membri di ensemble e i pluviometri ARPA a tre chilometri dal paese. Nessuna previsione ricopiata da un provider: i numeri vengono incrociati, pesati in base a quanto ogni modello ha davvero azzeccato qui negli ultimi giorni, e poi verificati contro quello che è successo davvero.</p>
+    <p class="sotto">Diciotto modelli fisici di tredici centri meteorologici nazionali, 122 membri di ensemble e i pluviometri ARPA a tre chilometri dal paese. Nessuna previsione ricopiata da un provider: i numeri vengono incrociati, corretti per gli errori che ogni modello ha davvero commesso qui, e poi verificati contro quello che è successo. Le correzioni restano solo se dimostrano di funzionare su giorni che il sistema non aveva mai visto.</p>
     <div class="coord">
       <span class="tag">45.694 N · 9.734 E</span>
       <span class="tag" id="tag-modelli">18 modelli · 13 centri</span>
@@ -265,6 +291,13 @@ button.pulsante:focus-visible{outline:2px solid var(--blu); outline-offset:2px}
     </div>
   </section>
 
+  <section id="sez-nowcast">
+    <div class="occhiello">Prossime tre ore · radar</div>
+    <h2>Sta per piovere?</h2>
+    <p class="guida">Sotto le tre ore i modelli fisici sono al loro punto più debole, e quello che conta davvero è dove si trova la pioggia adesso e in che direzione si muove. Qui l'eco radar dell'ultima ora viene estrapolato in avanti, e messo accanto ai sei modelli ad alta risoluzione che aggiornano ogni quarto d'ora e ai pluviometri del paese.</p>
+    <div id="blocco-nowcast"><div class="carico"><span class="spin"></span>lettura del radar e dei modelli a 15 minuti</div></div>
+  </section>
+
   <section id="sez-bollettino">
     <div class="occhiello">Bollettino</div>
     <h2>In parole</h2>
@@ -275,7 +308,7 @@ button.pulsante:focus-visible{outline:2px solid var(--blu); outline-offset:2px}
   <section id="sez-ore">
     <div class="occhiello">Prossime 48 ore</div>
     <h2>Ora per ora, con l'incertezza in chiaro</h2>
-    <p class="guida">La fascia attorno alla linea della temperatura è l'intervallo dentro cui cade il valore vero in circa otto casi su dieci, non un abbellimento grafico. Le barre della pioggia sono probabilità calcolate sui membri di ensemble e tarate sulla frequenza reale, non la media delle opinioni dei modelli.</p>
+    <p class="guida" id="guida-ore">La fascia attorno alla linea della temperatura punta a contenere il valore vero in otto casi su dieci, e quanto ci riesca davvero viene misurato e scritto qui sotto invece che promesso. Le barre della pioggia sono probabilità calcolate sui membri di ensemble e tarate sulla frequenza reale, non la media delle opinioni dei modelli.</p>
     <div class="tela" id="tela-ore"><div class="carico"><span class="spin"></span>calcolo del consenso orario</div></div>
     <div class="legenda" id="legenda-ore" hidden>
       <span><i style="background:var(--arancio)"></i>temperatura, consenso pesato</span>
@@ -310,7 +343,7 @@ button.pulsante:focus-visible{outline:2px solid var(--blu); outline-offset:2px}
   <section id="sez-pagella">
     <div class="occhiello">Pagella · verifica a posteriori</div>
     <h2>Quanto ha sbagliato ogni modello, qui, negli ultimi giorni</h2>
-    <p class="guida">Per ogni modello viene recuperato cosa aveva previsto 24, 48 e 72 ore prima, e confrontato con le misure delle stazioni. L'errore medio che ne esce decide il peso nel consenso: chi sbaglia poco conta di più. Questa tabella è il motore, non un ornamento.</p>
+    <p class="guida">Per ogni modello viene recuperato cosa aveva previsto 24, 48 e 72 ore prima, e confrontato con le misure delle stazioni. Da questi scarti nascono le correzioni che vengono applicate alle previsioni future. Quello che invece non viene fatto, dopo averlo provato e misurato, è dare più peso ai modelli più bravi: peggiorava, e il riquadro qui sotto spiega di quanto.</p>
     <div id="tabella-pagella"><div class="carico"><span class="spin"></span>confronto delle previsioni passate con le misure</div></div>
     <div class="imparato" id="imparato"></div>
   </section>
@@ -345,6 +378,18 @@ button.pulsante:focus-visible{outline:2px solid var(--blu); outline-offset:2px}
       <div class="blocco">
         <h3>Correzione per regime</h3>
         <p>L'errore dei modelli non è costante. Nelle notti serene la pianura si raffredda più di quanto i modelli a maglia larga riescano a vedere. L'errore viene quindi calcolato separatamente in quattro regimi (notte serena, notte coperta, giorno sereno, giorno coperto) e applicata la correzione giusta per la situazione, smorzata quando i campioni sono pochi.</p>
+      </div>
+      <div class="blocco">
+        <h3>Cosa è stato provato e buttato via</h3>
+        <p>Pesare di più i modelli che sbagliano meno sembrava la mossa giusta. Messa alla prova su ventuno giorni che il sistema non aveva mai visto, peggiorava il risultato a ogni dose, quindi è stata tolta e tutti i centri contano uguale. Una correzione che non sopravvive a una verifica fuori campione è un modo elegante di imparare a memoria il passato, non di prevedere il futuro.</p>
+      </div>
+      <div class="blocco">
+        <h3>La fascia di incertezza</h3>
+        <p>La dispersione fra i modelli è sistematicamente più stretta dell'errore reale, ed è un difetto noto dei modelli numerici. Viene quindi misurato di quanto la fascia sbaglia e allargata finché il numero dichiarato corrisponde: <b class="mono" id="metodo-fascia">in calcolo</b>.</p>
+      </div>
+      <div class="blocco">
+        <h3>Massime e minime</h3>
+        <p>La massima non si prende dal consenso orario. Il massimo di una media è sempre più basso della media dei massimi, e la verifica lo confermava con un grado e mezzo di scarto sistematico. Ora si prende il picco di ogni modello, gli si toglie l'errore che quel modello commette di solito sui propri picchi, e si fa la mediana. Sulla minima invece il consenso orario risulta già il metodo migliore, quindi lì non si tocca niente.</p>
       </div>
       <div class="blocco">
         <h3>Come nasce la probabilità di pioggia</h3>

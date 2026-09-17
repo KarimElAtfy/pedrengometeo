@@ -21,6 +21,8 @@ USCITA="${1:-index.html}"
   sed -n '/<div class="top">/,$p' pedrengometeo.html
   echo '<script>'
   cat motore.js
+  echo ""
+  cat nowcast.js
   echo ''
   cat interfaccia.js
   echo '</script>'

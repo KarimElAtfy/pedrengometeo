@@ -46,7 +46,15 @@ const VARIABILI = ['temperature_2m', 'precipitation', 'precipitation_probability
                    'cloud_cover', 'wind_speed_10m', 'wind_gusts_10m', 'relative_humidity_2m', 'snowfall'];
 
 const SOGLIA_PIOGGIA = 0.2;   // mm/h oltre cui si considera che stia piovendo
-const GIORNI_VERIFICA = 10;   // finestra di misure ARPA scaricata
+const GIORNI_VERIFICA = 21;   // finestra di misure ARPA scaricata
+
+/* Quanto contano i pesi per bravura, da 0 (tutti i centri uguali) a 1 (pesatura piena).
+   Misurato fuori campione su 21 giorni mai visti in fase di taratura: ogni quantita di
+   pesatura peggiorava il risultato in modo monotono, da 0.968 gradi con pesi uguali a
+   0.985 con pesatura piena. La mediana pesata era gia robusta da sola, e le stime di
+   bravura sono troppo rumorose per aggiungere segnale. Quindi zero, finche non arrivano
+   dati che dicano il contrario. La pagella resta, ma come informazione, non come peso. */
+const LAMBDA_PESI = 0;
 
 /* ---------------- utilità di base ---------------- */
 
@@ -357,6 +365,40 @@ function calcolaPagella(precedenti, oss, nuvoleRif) {
         }
       }
     }
+
+    /* Errore che resta sulla massima del giorno DOPO aver applicato la correzione
+       oraria. La media oraria smussa il picco del pomeriggio, e nessuna correzione
+       ora per ora lo recupera: va misurato e tolto a parte. Sulla minima invece la
+       verifica dice che conviene lasciare fare alla correzione oraria, quindi qui
+       la minima viene misurata ma non usata. */
+    const serie24 = s['temperature_2m_previous_day1'];
+    if (serie24 && voce.per[24]) {
+      const perGiorno = {};
+      serie24.forEach((prev, k) => {
+        if (oss.temp.get(k) === undefined) return;
+        (perGiorno[k.slice(0, 10)] = perGiorno[k.slice(0, 10)] || []).push(k);
+      });
+      const dMax = [], dMin = [];
+      const globale = voce.per[24].scarto || 0;
+      for (const g of Object.keys(perGiorno)) {
+        const ore = perGiorno[g];
+        if (ore.length < 20) continue;
+        const corretti = ore.map(k => {
+          const r = voce.regimi[regimeDi(k, nuvoleRif.get(k))];
+          return serie24.get(k) - (r ? smorza(r.scarto, r.n, globale) : globale);
+        });
+        const veri = ore.map(k => oss.temp.get(k));
+        dMax.push(Math.max(...corretti) - Math.max(...veri));
+        dMin.push(Math.min(...corretti) - Math.min(...veri));
+      }
+      if (dMax.length >= 5) {
+        voce.estremi = {
+          max: { scarto: media(dMax), n: dMax.length },
+          min: { scarto: media(dMin), n: dMin.length }
+        };
+      }
+    }
+
     if (Object.keys(voce.per).length) esito[m.id] = voce;
   }
   return esito;
@@ -378,32 +420,35 @@ function maeInterpolato(voce, lead) {
   return ult[1].mae * (1 + 0.16 * (lead - ult[0]) / 24);
 }
 
-/* peso di ogni famiglia per un certo anticipo: chi sbaglia poco pesa di più */
-function pesiFamiglia(pagella, lead, disponibili) {
+/* Peso di ogni famiglia per un certo anticipo. La pesatura per bravura viene
+   calcolata ma poi miscelata con i pesi uniformi secondo LAMBDA_PESI, che la
+   verifica fuori campione ha messo a zero. Il codice resta perche il valore va
+   rimisurato quando l archivio sara piu lungo, non perche l idea sia sbagliata
+   in assoluto: e sbagliata con i dati che abbiamo oggi. */
+function pesiFamiglia(pagella, lead, disponibili, lambda = LAMBDA_PESI) {
   const perFam = {};
   for (const id of disponibili) {
     const m = PER_ID[id]; if (!m) continue;
     const mae = maeInterpolato(pagella[id], lead);
     (perFam[m.fam] = perFam[m.fam] || []).push({ id, mae });
   }
-  const grezzi = {};
+  const fams = Object.keys(perFam);
   const noti = Object.values(perFam).flat().map(x => x.mae).filter(x => x !== null);
   const riferimento = noti.length ? media(noti) : 1.6;
-  for (const f of Object.keys(perFam)) {
-    const maes = perFam[f].map(x => x.mae === null ? riferimento : x.mae);
-    const mm = media(maes);
+  const uniforme = fams.length ? 1 / fams.length : 0;
+
+  const grezzi = {};
+  for (const f of fams) {
+    const mm = media(perFam[f].map(x => x.mae === null ? riferimento : x.mae));
     grezzi[f] = 1 / Math.pow(Math.max(0.35, mm) + 0.45, 2);
   }
-  let tot = somma(Object.values(grezzi));
-  let pesi = {};
-  for (const f of Object.keys(grezzi)) pesi[f] = grezzi[f] / tot;
-  // nessuna famiglia può dominare né sparire del tutto
-  const nf = Object.keys(pesi).length;
-  const tetto = Math.max(0.22, 1.8 / nf), pavimento = 0.25 / nf;
-  for (const f of Object.keys(pesi)) pesi[f] = chiudi(pesi[f], pavimento, tetto);
-  tot = somma(Object.values(pesi));
-  for (const f of Object.keys(pesi)) pesi[f] /= tot;
-  return { pesi, membri: perFam, riferimento };
+  const totGrezzi = somma(Object.values(grezzi)) || 1;
+
+  const pesi = {};
+  for (const f of fams) pesi[f] = (1 - lambda) * uniforme + lambda * (grezzi[f] / totGrezzi);
+  const tot = somma(Object.values(pesi)) || 1;
+  for (const f of fams) pesi[f] /= tot;
+  return { pesi, membri: perFam, riferimento, lambda };
 }
 
 /* ---------------- curva di affidabilità della pioggia ---------------- */
@@ -444,10 +489,125 @@ function applicaCurva(frazione, bins, forza = 8) {
   return chiudi(smorza(osservata, b.n, frazione, forza), 0, 1);
 }
 
+/* ---------------- taratura della fascia di incertezza ---------------- */
+/* La dispersione fra i modelli e sistematicamente piu stretta dell errore vero:
+   e un difetto noto dei modelli numerici, non un bug. Qui si misura di quanto,
+   e si allarga finche la fascia dichiarata dice la verita. Il fattore viene
+   calcolato sulla prima parte del periodo e la copertura viene misurata sulla
+   seconda, altrimenti si misurerebbe se stessi. */
+
+function ricostruisciPassato(precedenti, oss, nuvoleRif, pagella) {
+  const chiavi = new Set();
+  for (const m of MODELLI) {
+    const s = precedenti.serie[m.id]; if (!s) continue;
+    const t = s['temperature_2m_previous_day1']; if (!t) continue;
+    t.forEach((_, k) => chiavi.add(k));
+  }
+  const punti = [];
+  for (const k of [...chiavi].sort()) {
+    const vero = oss.temp.get(k);
+    if (vero === undefined) continue;
+    const perFam = {};
+    for (const m of MODELLI) {
+      const s = precedenti.serie[m.id]; if (!s) continue;
+      const t = s['temperature_2m_previous_day1']; if (!t || !t.has(k)) continue;
+      const voce = pagella[m.id];
+      let corr = 0;
+      if (voce && voce.per[24]) {
+        const glob = voce.per[24].scarto || 0;
+        const r = voce.regimi[regimeDi(k, nuvoleRif.get(k))];
+        corr = r ? smorza(r.scarto, r.n, glob) : glob;
+      }
+      (perFam[m.fam] = perFam[m.fam] || []).push(t.get(k) - corr);
+    }
+    const fams = Object.keys(perFam);
+    if (fams.length < 6) continue;
+    const coppie = fams.map(f => [media(perFam[f]), 1]);
+    const centro = medianaPesata(coppie);
+    const semi = Math.max((quantilePesato(coppie, 0.9) - quantilePesato(coppie, 0.1)) / 2, 0.3);
+    punti.push({ k, vero, centro, semi, errore: Math.abs(vero - centro) });
+  }
+  return punti;
+}
+
+function taraturaFascia(punti) {
+  if (punti.length < 120) return { fattore: 1.25, stimato: false, n: punti.length };
+  const taglio = Math.floor(punti.length * 0.65);
+  const allena = punti.slice(0, taglio), prova = punti.slice(taglio);
+  const z = allena.map(p => p.errore / p.semi).sort((a, b) => a - b);
+  const fattore = chiudi(z[Math.floor(0.8 * (z.length - 1))], 0.8, 3);
+  const dentro = (lista, f) => lista.filter(p => p.errore <= p.semi * f).length / lista.length;
+  return {
+    fattore, stimato: true, n: punti.length,
+    coperturaPrima: dentro(prova, 1),
+    coperturaDopo: dentro(prova, fattore),
+    nProva: prova.length
+  };
+}
+
+/* ---------------- sfasamento temporale della pioggia ---------------- */
+/* Certi modelli portano i fronti in anticipo, altri in ritardo, e lo fanno in
+   modo abbastanza costante da poterlo correggere. Lo sfasamento viene accettato
+   solo se migliora l errore di almeno l otto per cento, per non inseguire rumore. */
+
+function sfasamentoPioggia(precedenti, oss, guadagnoMinimo = 0.08) {
+  const out = {};
+  for (const m of MODELLI) {
+    const s = precedenti.serie[m.id]; if (!s) continue;
+    const p = s['precipitation_previous_day1']; if (!p) continue;
+    const prova = {};
+    for (let lag = -3; lag <= 3; lag++) {
+      let acc = 0, n = 0;
+      oss.pioggia.forEach((vero, k) => {
+        const f = p.get(chiaveDa(k, -lag));
+        if (f === undefined) return;
+        acc += Math.abs(f - vero); n++;
+      });
+      if (n >= 200) prova[lag] = acc / n;
+    }
+    const zero = prova[0];
+    if (zero === undefined) continue;
+    let migliore = 0;
+    for (const lag of Object.keys(prova)) if (prova[lag] < prova[migliore]) migliore = +lag;
+    if (migliore !== 0 && (zero - prova[migliore]) / zero >= guadagnoMinimo) {
+      out[m.id] = { ore: +migliore, guadagno: (zero - prova[migliore]) / zero };
+    }
+  }
+  return out;
+}
+
+/* ---------------- pioggia di zona contro pioggia sul paese ---------------- */
+/* I modelli prevedono la pioggia media su una cella larga chilometri. I quattro
+   pluviometri dicono quanto quella media somigli a quello che cade davvero qui. */
+
+function disomogeneitaPioggia(oss) {
+  let zona = 0, anchePunto = 0, sommaZona = 0, sommaPunto = 0;
+  for (const k of Object.keys(oss.perStazione || {})) {
+    const letture = oss.perStazione[k];
+    if (!letture || letture.length < 3) continue;
+    const massimo = Math.max(...letture.map(l => l.mm));
+    const punto = oss.pioggia.get(k);
+    if (massimo >= SOGLIA_PIOGGIA) {
+      zona++;
+      sommaZona += massimo;
+      sommaPunto += (punto || 0);
+      if (punto >= SOGLIA_PIOGGIA) anchePunto++;
+    }
+  }
+  if (zona < 12) return null;
+  return {
+    oreDiPioggiaInZona: zona,
+    quotaCheArrivaQui: anchePunto / zona,
+    rapportoQuantita: sommaZona > 0 ? sommaPunto / sommaZona : null
+  };
+}
+
 /* ---------------- consenso ---------------- */
 
 function costruisciConsenso(ctx) {
   const { det, ens, pagella, oss, bins, adesso } = ctx;
+  const sfasamenti = ctx.sfasamenti || {};
+  const allarga = (ctx.fascia && ctx.fascia.fattore) ? ctx.fascia.fattore : 1;
   const ore = det.ore.filter(k => k >= adesso);
   const consenso = [];
 
@@ -508,7 +668,10 @@ function costruisciConsenso(ctx) {
           dettaglio.push({ id, fam: f, t: val, tGrezza: grezza, corr: corr + ancora });
         }
         const g = (v) => s[v] && s[v].has(k) ? s[v].get(k) : null;
-        const p = g('precipitation'); if (p !== null) pp.push(p);
+        // la pioggia viene letta con lo sfasamento proprio del modello, se ne ha uno
+        const kPioggia = sfasamenti[id] ? chiaveDa(k, -sfasamenti[id].ore) : k;
+        const p = s.precipitation && s.precipitation.has(kPioggia) ? s.precipitation.get(kPioggia) : null;
+        if (p !== null) pp.push(p);
         const n = g('cloud_cover'); if (n !== null) nn.push(n);
         const w = g('wind_speed_10m'); if (w !== null) vv.push(w);
         const ra = g('wind_gusts_10m'); if (ra !== null) rr.push(ra);
@@ -542,10 +705,10 @@ function costruisciConsenso(ctx) {
       const ampiezzaEns = q(0.9) - q(0.1);
       const ampiezzaFam = (p90 - p10);
       const ampiezza = Math.max(ampiezzaFam, ampiezzaEns * 0.85);
-      const semi = Math.max(ampiezza / 2, 0.45 + lead * 0.012);
+      const semi = Math.max(ampiezza / 2, 0.45 + lead * 0.012) * allarga;
       p10 = t - semi; p90 = t + semi;
     } else {
-      const semi = Math.max((p90 - p10) / 2, 0.5 + lead * 0.014);
+      const semi = Math.max((p90 - p10) / 2, 0.5 + lead * 0.014) * allarga;
       p10 = t - semi; p90 = t + semi;
     }
 
@@ -614,7 +777,7 @@ function costruisciConsenso(ctx) {
 
 /* ---------------- aggregazione giornaliera ---------------- */
 
-function aggregaGiorni(consenso, ens, oggi) {
+function aggregaGiorni(consenso, ens, oggi, pagella) {
   const perGiorno = {};
   for (const c of consenso) {
     const g = c.k.slice(0, 10);
@@ -624,8 +787,37 @@ function aggregaGiorni(consenso, ens, oggi) {
   for (const g of Object.keys(perGiorno).sort()) {
     const ore = perGiorno[g];
     if (ore.length < 6) continue;
-    const tmax = Math.max(...ore.map(o => o.t)), tmin = Math.min(...ore.map(o => o.t));
-    const oraMax = ore.find(o => o.t === tmax), oraMin = ore.find(o => o.t === tmin);
+    const tmin = Math.min(...ore.map(o => o.t));
+    const piccoOrario = Math.max(...ore.map(o => o.t));
+    const oraMax = ore.reduce((a, o) => o.t > a.t ? o : a, ore[0]);
+    const oraMin = ore.reduce((a, o) => o.t < a.t ? o : a, ore[0]);
+
+    /* La massima non si prende dal consenso orario: il massimo di una media e
+       sempre piu basso della media dei massimi, e la verifica lo confermava con
+       un grado e mezzo di scarto sistematico. Si prende il massimo di ogni
+       modello, gli si toglie l errore residuo misurato sui suoi massimi passati,
+       e si fa la mediana. Sulla minima invece la verifica dice che il consenso
+       orario e gia il metodo migliore, quindi resta com era. */
+    let tmax = piccoOrario, metodoMax = 'consenso orario';
+    if (ore.length >= 20) {
+      const perModello = {};
+      for (const o of ore) for (const d of (o.dettaglio || [])) {
+        (perModello[d.id] = perModello[d.id] || []).push(d.t);
+      }
+      const perFam = {};
+      for (const id of Object.keys(perModello)) {
+        const v = perModello[id];
+        if (v.length < ore.length * 0.85 || !PER_ID[id]) continue;
+        const voce = pagella && pagella[id];
+        const corr = (voce && voce.estremi) ? voce.estremi.max.scarto : 0;
+        (perFam[PER_ID[id].fam] = perFam[PER_ID[id].fam] || []).push(Math.max(...v) - corr);
+      }
+      const fams = Object.keys(perFam);
+      if (fams.length >= 6) {
+        const m = medianaPesata(fams.map(f => [media(perFam[f]), 1]));
+        if (m !== null && isFinite(m)) { tmax = m; metodoMax = 'consenso dei massimi corretto'; }
+      }
+    }
 
     // probabilità giornaliera calcolata sui totali dei singoli membri, non sommando le ore
     const perSistema = [], totaliMembri = [];
@@ -659,8 +851,10 @@ function aggregaGiorni(consenso, ens, oggi) {
     fiducia = punteggio > 0.72 ? 'alta' : punteggio > 0.52 ? 'media' : 'bassa';
 
     giorni.push({
-      data: g, ore, tmax, tmin, oraMax: oraMax ? oraMax.k : null, oraMin: oraMin ? oraMin.k : null,
-      tmaxP10: oraMax ? oraMax.p10 : tmax, tmaxP90: oraMax ? oraMax.p90 : tmax,
+      data: g, ore, tmax, tmin, metodoMax, piccoOrario,
+      oraMax: oraMax ? oraMax.k : null, oraMin: oraMin ? oraMin.k : null,
+      tmaxP10: oraMax ? tmax - (oraMax.t - oraMax.p10) : tmax,
+      tmaxP90: oraMax ? tmax + (oraMax.p90 - oraMax.t) : tmax,
       tminP10: oraMin ? oraMin.p10 : tmin, tminP90: oraMin ? oraMin.p90 : tmin,
       prob: probGiorno, mm, mmAlto, finestre, incertezza, fiducia, punteggio, lead,
       nuvoleMedie: media(ore.map(o => o.nuvole).filter(x => x !== null)),
@@ -755,4 +949,18 @@ function verificaStorica(precedenti, oss) {
     });
   }
   return righe;
+}
+
+/* Il motore gira sia nel browser sia sotto Node, dove lo usa il lavoro notturno
+   che riempie l archivio. Nel browser questo blocco non fa niente. */
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    SITO, MODELLI, PER_ID, FAMIGLIE, STAZIONI, VARIABILI, SOGLIA_PIOGGIA, GIORNI_VERIFICA, LAMBDA_PESI,
+    chiaveOra, chiaveDa, dataDaChiave, num, media, somma, chiudi, mediaPesata, quantilePesato, medianaPesata,
+    scarica, scaricaConRitento, urlOpenMeteo, urlArpa,
+    leggiMultiModello, leggiEnsemble, aggregaArpa, serieOsservate, controllaAllineamento, spostaSerie,
+    regimeDi, smorza, calcolaPagella, maeInterpolato, pesiFamiglia,
+    curvaAffidabilita, applicaCurva, ricostruisciPassato, taraturaFascia, sfasamentoPioggia, disomogeneitaPioggia,
+    costruisciConsenso, aggregaGiorni, finestrePioggia, verificaStorica
+  };
 }
