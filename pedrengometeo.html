@@ -1,0 +1,368 @@
+<title>PedrengoMeteo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
+<style>
+/* azzeramento di base, il sito gira da solo senza nessuna impalcatura esterna */
+html{color-scheme:light dark; -webkit-text-size-adjust:100%}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none !important}
+
+:root{
+  padding-top:env(safe-area-inset-top, 0px);
+  padding-bottom:env(safe-area-inset-bottom, 0px);
+  --paper:#EDF0F3; --surface:#FFFFFF; --surface-2:#F6F8FA; --surface-3:#E7ECF0;
+  --ink:#0F1D28; --ink-2:#3B5165; --ink-3:#6C8398;
+  --line:#D6DEE5; --line-2:#BFCAD4;
+  --blu:#1E6FA8; --arancio:#C4561D; --viola:#6A4C93;
+  --ok:#12795A; --attesa:#8A6100; --allerta:#A32B21;
+  --blu-fill:rgba(30,111,168,.13); --blu-fill-2:rgba(30,111,168,.26);
+  --ar-fill:rgba(196,86,29,.14);
+  --ombra:0 1px 2px rgba(15,29,40,.06), 0 6px 18px rgba(15,29,40,.05);
+  --ui:"Archivo","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --prosa:"Newsreader",Georgia,"Times New Roman",serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0B131A; --surface:#111E27; --surface-2:#16242E; --surface-3:#1D2F3A;
+    --ink:#E2ECF3; --ink-2:#A6BBCA; --ink-3:#78909F;
+    --line:#22333F; --line-2:#2F4552;
+    --blu:#3F97CE; --arancio:#D06E38; --viola:#9478C4;
+    --ok:#3FA57A; --attesa:#D2A03C; --allerta:#E08279;
+    --blu-fill:rgba(63,151,206,.17); --blu-fill-2:rgba(63,151,206,.32);
+    --ar-fill:rgba(208,110,56,.18);
+    --ombra:0 1px 2px rgba(0,0,0,.35), 0 6px 18px rgba(0,0,0,.28);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0B131A; --surface:#111E27; --surface-2:#16242E; --surface-3:#1D2F3A;
+  --ink:#E2ECF3; --ink-2:#A6BBCA; --ink-3:#78909F;
+  --line:#22333F; --line-2:#2F4552;
+  --blu:#3F97CE; --arancio:#D06E38; --viola:#9478C4;
+  --ok:#3FA57A; --attesa:#D2A03C; --allerta:#E08279;
+  --blu-fill:rgba(63,151,206,.17); --blu-fill-2:rgba(63,151,206,.32);
+  --ar-fill:rgba(208,110,56,.18);
+  --ombra:0 1px 2px rgba(0,0,0,.35), 0 6px 18px rgba(0,0,0,.28);
+}
+*{box-sizing:border-box}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:var(--ui); font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px; margin:0 auto; padding-left:18px; padding-right:18px; padding-block:0 60px}
+h1,h2,h3{margin:0; text-wrap:balance; font-weight:700; letter-spacing:-.01em}
+p{margin:0}
+a{color:var(--blu)}
+.mono{font-family:var(--mono); font-variant-numeric:tabular-nums}
+
+.top{
+  position:sticky; top:env(safe-area-inset-top,0px); z-index:40;
+  background:var(--paper); border-bottom:1px solid var(--line);
+}
+.top-in{max-width:1080px; margin:0 auto; padding:9px 18px; display:flex; align-items:center; gap:14px; flex-wrap:wrap}
+.marchio{display:flex; align-items:baseline; gap:8px; margin-right:auto}
+.marchio b{font-size:17px; letter-spacing:-.02em}
+.marchio span{font-family:var(--mono); font-size:10.5px; color:var(--ink-3); letter-spacing:.09em; text-transform:uppercase}
+.top-ora{display:flex; align-items:center; gap:7px; font-family:var(--mono); font-size:12.5px; color:var(--ink-2)}
+.pallino{width:7px; height:7px; border-radius:50%; background:var(--ink-3); flex:none}
+.pallino.vivo{background:var(--ok); box-shadow:0 0 0 3px color-mix(in srgb, var(--ok) 22%, transparent)}
+.pallino.rotto{background:var(--allerta)}
+.top-t{font-family:var(--mono); font-weight:600; font-size:15px; color:var(--ink)}
+
+.testata{padding-block:34px 26px; border-bottom:1px solid var(--line)}
+.testata h1{font-size:clamp(29px,6.2vw,45px); line-height:1.03; letter-spacing:-.033em}
+.testata .sotto{margin-top:11px; color:var(--ink-2); font-size:14.5px; max-width:64ch}
+.coord{margin-top:13px; display:flex; gap:7px; flex-wrap:wrap}
+.tag{
+  font-family:var(--mono); font-size:11px; letter-spacing:.04em; color:var(--ink-2);
+  border:1px solid var(--line-2); border-radius:999px; padding:3px 9px; background:var(--surface);
+}
+section{padding-block:34px; border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:0}
+.occhiello{
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--ink-3); display:flex; align-items:center; gap:10px; margin-bottom:6px;
+}
+.occhiello::after{content:""; flex:1; height:1px; background:var(--line)}
+h2{font-size:22px; letter-spacing:-.02em; margin-bottom:5px}
+.guida{color:var(--ink-2); font-size:13.5px; max-width:72ch; margin-bottom:18px}
+
+.adesso{display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); gap:16px; align-items:stretch}
+@media (max-width:780px){.adesso{grid-template-columns:1fr}}
+.riquadro{background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:18px; box-shadow:var(--ombra)}
+.misura{display:flex; align-items:flex-start; gap:20px; flex-wrap:wrap}
+.grossa{font-family:var(--mono); font-weight:600; font-size:clamp(42px,10.5vw,62px); line-height:.92; letter-spacing:-.04em}
+.grossa small{font-size:.35em; font-weight:500; color:var(--ink-3); letter-spacing:0}
+.misura-lato{display:flex; flex-direction:column; gap:4px; padding-top:5px; min-width:158px; flex:1}
+.riga-dato{display:flex; justify-content:space-between; gap:14px; font-size:13px; border-bottom:1px dotted var(--line); padding-bottom:3px}
+.riga-dato:last-child{border-bottom:0}
+.riga-dato span:first-child{color:var(--ink-3)}
+.riga-dato b{font-family:var(--mono); font-weight:500}
+.fonte{margin-top:14px; padding-top:11px; border-top:1px solid var(--line); font-size:12px; color:var(--ink-3); line-height:1.45}
+.scarto b{font-family:var(--mono); font-size:20px; font-weight:600}
+
+.bollettino{
+  font-family:var(--prosa); font-size:clamp(17px,2.3vw,19.5px); line-height:1.56; color:var(--ink); max-width:64ch;
+}
+.bollettino p+p{margin-top:12px}
+.firma{margin-top:16px; font-family:var(--mono); font-size:11px; color:var(--ink-3); letter-spacing:.05em; text-transform:uppercase}
+
+.tela{position:relative; background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:14px 8px 6px; box-shadow:var(--ombra)}
+.tela svg{display:block; width:100%; height:auto}
+.legenda{display:flex; gap:16px; flex-wrap:wrap; padding:10px 4px 2px; font-size:12px; color:var(--ink-2)}
+.legenda i{display:inline-block; width:14px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle}
+.legenda .quad{width:11px; height:11px; border-radius:2px}
+.suggerimento{
+  position:absolute; pointer-events:none; opacity:0; transition:opacity .1s; left:0; top:0;
+  background:var(--surface); border:1px solid var(--line-2); border-radius:8px;
+  padding:9px 11px; box-shadow:var(--ombra); font-size:12.5px; min-width:190px; z-index:10;
+}
+.suggerimento.on{opacity:1}
+.suggerimento h4{margin:0 0 6px; font-size:11.5px; font-family:var(--mono); letter-spacing:.04em; color:var(--ink-3); text-transform:uppercase; font-weight:500}
+.sug-riga{display:flex; justify-content:space-between; gap:16px; padding:1.5px 0}
+.sug-riga b{font-family:var(--mono); font-weight:500}
+
+.giorni{display:flex; flex-direction:column; border:1px solid var(--line); border-radius:var(--r); overflow:hidden; background:var(--surface); box-shadow:var(--ombra)}
+.giorno{
+  display:grid; grid-template-columns:100px 92px minmax(110px,1fr) 124px 92px; gap:14px; align-items:center;
+  padding:13px 16px; border:0; border-bottom:1px solid var(--line); cursor:pointer;
+  width:100%; text-align:left; font:inherit; color:inherit; background:var(--surface);
+}
+.giorno:last-of-type{border-bottom:0}
+.giorno:hover{background:var(--surface-2)}
+.giorno[aria-expanded="true"]{background:var(--surface-2)}
+.giorno:focus-visible{outline:2px solid var(--blu); outline-offset:-2px}
+@media (max-width:860px){
+  .giorno{grid-template-columns:1fr auto; grid-template-areas:"data simbolo" "barra barra" "pioggia fiducia"; gap:9px 12px}
+  .g-data{grid-area:data} .g-simbolo{grid-area:simbolo; justify-content:flex-end} .g-barra{grid-area:barra} .g-pioggia{grid-area:pioggia} .g-fiducia{grid-area:fiducia; justify-self:end}
+}
+.g-data b{display:block; font-size:14px; text-transform:capitalize}
+.g-data span{font-family:var(--mono); font-size:11.5px; color:var(--ink-3)}
+.g-simbolo{display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--ink-2); min-width:0}
+.g-simbolo span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.g-barra{position:relative; height:26px}
+.g-barra .traccia{position:absolute; left:0; right:0; top:12px; height:2px; background:var(--line); border-radius:2px}
+.g-barra .arco{position:absolute; top:9px; height:8px; border-radius:4px; background:linear-gradient(90deg, var(--blu), var(--arancio))}
+.g-barra .et{position:absolute; top:-2px; font-family:var(--mono); font-size:11.5px; font-weight:500; font-variant-numeric:tabular-nums}
+.g-pioggia{display:flex; align-items:center; gap:8px}
+.mini{width:50px; height:6px; background:var(--surface-3); border-radius:3px; overflow:hidden; flex:none}
+.mini i{display:block; height:100%; background:var(--blu); border-radius:3px}
+.g-pioggia span{font-family:var(--mono); font-size:12.5px; font-variant-numeric:tabular-nums}
+.chip{
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.05em; text-transform:uppercase;
+  padding:3px 8px; border-radius:999px; border:1px solid; display:inline-flex; align-items:center; gap:5px; white-space:nowrap;
+}
+.chip.alta{color:var(--ok); border-color:color-mix(in srgb,var(--ok) 42%,transparent); background:color-mix(in srgb,var(--ok) 9%,transparent)}
+.chip.media{color:var(--attesa); border-color:color-mix(in srgb,var(--attesa) 42%,transparent); background:color-mix(in srgb,var(--attesa) 9%,transparent)}
+.chip.bassa{color:var(--allerta); border-color:color-mix(in srgb,var(--allerta) 42%,transparent); background:color-mix(in srgb,var(--allerta) 9%,transparent)}
+.dettaglio{padding:2px 16px 16px; background:var(--surface-2); border-bottom:1px solid var(--line); font-size:13.5px; color:var(--ink-2)}
+.dettaglio .col{display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:18px; padding-top:14px}
+.dettaglio h4{margin:0 0 7px; font-size:10.5px; font-family:var(--mono); letter-spacing:.09em; text-transform:uppercase; color:var(--ink-3); font-weight:500}
+.dettaglio p{line-height:1.5}
+.elenco-mod{display:flex; flex-wrap:wrap; gap:5px}
+.pill{font-family:var(--mono); font-size:11px; padding:2.5px 7px; border-radius:5px; background:var(--surface-3); color:var(--ink-2)}
+.pill.bagnato{background:var(--blu-fill-2); color:var(--blu)}
+.pill.asciutto{background:var(--surface-3); color:var(--ink-3)}
+
+.scorri{overflow-x:auto; border:1px solid var(--line); border-radius:var(--r); background:var(--surface); box-shadow:var(--ombra)}
+table{border-collapse:collapse; width:100%; min-width:700px; font-size:13px}
+th,td{padding:9px 12px; text-align:right; border-bottom:1px solid var(--line); white-space:nowrap}
+th{
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3);
+  font-weight:500; background:var(--surface); border-bottom:1px solid var(--line-2);
+}
+th:first-child,td:first-child{text-align:left}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--surface-2)}
+td.v{font-family:var(--mono); font-variant-numeric:tabular-nums}
+.ente{display:block; font-size:11px; color:var(--ink-3); font-family:var(--ui)}
+.barra-peso{display:flex; align-items:center; gap:7px; justify-content:flex-end}
+.barra-peso i{display:block; height:7px; background:var(--blu); border-radius:2px; min-width:1px}
+.rank{font-family:var(--mono); color:var(--ink-3); font-size:11.5px; width:20px; display:inline-block}
+
+.imparato{display:grid; grid-template-columns:repeat(auto-fit,minmax(258px,1fr)); gap:12px; margin-top:18px}
+.nota{background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--blu); border-radius:6px; padding:12px 14px; font-size:13.5px; line-height:1.45}
+.nota b{display:block; font-family:var(--mono); font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px; font-weight:500}
+.nota.corr{border-left-color:var(--arancio)}
+.nota.att{border-left-color:var(--attesa)}
+
+.metodo{columns:2; column-gap:38px; font-size:13.5px; color:var(--ink-2); line-height:1.6}
+@media (max-width:780px){.metodo{columns:1}}
+.metodo h3{font-size:14px; color:var(--ink); margin:0 0 5px}
+.metodo .blocco{break-inside:avoid; margin-bottom:18px}
+
+/* elementi dei grafici */
+.gx{stroke:var(--line-2); stroke-width:1}
+.gx-lieve{stroke:var(--line); stroke-width:1; stroke-dasharray:2 4}
+.notte{fill:var(--surface-3); opacity:.55}
+.et-asse{fill:var(--ink-3); font-family:var(--mono); font-size:10.5px}
+.et-giorno{fill:var(--ink-2); font-family:var(--mono); font-size:10.5px; font-weight:500; letter-spacing:.08em; text-transform:uppercase}
+.linea-t{fill:none; stroke:var(--arancio); stroke-width:2; stroke-linejoin:round; stroke-linecap:round}
+.fascia-t{fill:var(--ar-fill); stroke:none}
+.barra-p{fill:var(--blu)}
+.et-mm{fill:var(--blu); font-family:var(--mono); font-size:9.5px; font-weight:500}
+.punto-t{fill:var(--arancio); stroke:var(--surface); stroke-width:2}
+.zero{stroke:var(--line-2); stroke-width:1}
+.traccia-mod{fill:none; stroke:var(--ink-3); stroke-width:1; opacity:.3}
+.traccia-mod.evid{stroke:var(--viola); stroke-width:2.2; opacity:1}
+.linea-cons{fill:none; stroke:var(--blu); stroke-width:2.6; stroke-linejoin:round; stroke-linecap:round}
+.mirino{stroke:var(--ink-3); stroke-width:1; stroke-dasharray:3 3}
+
+.carico{display:flex; align-items:center; gap:10px; color:var(--ink-3); font-size:13px; font-family:var(--mono); padding:20px 0}
+.spin{width:13px; height:13px; border:2px solid var(--line-2); border-top-color:var(--blu); border-radius:50%; animation:g .7s linear infinite; flex:none}
+@keyframes g{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation-duration:2.4s}}
+.errore{background:color-mix(in srgb,var(--allerta) 8%,var(--surface)); border:1px solid color-mix(in srgb,var(--allerta) 32%,transparent); color:var(--allerta); padding:12px 14px; border-radius:8px; font-size:13px}
+.vuoto{color:var(--ink-3); font-size:13px; padding:8px 0}
+.avanzamento{display:flex; gap:4px; margin-top:14px}
+.avanzamento i{height:3px; flex:1; background:var(--line); border-radius:2px; transition:background .35s}
+.avanzamento i.fatto{background:var(--blu)}
+button.pulsante{
+  font:inherit; font-size:12.5px; font-family:var(--mono); color:var(--ink-2); background:var(--surface);
+  border:1px solid var(--line-2); border-radius:7px; padding:5px 11px; cursor:pointer;
+}
+button.pulsante:hover{border-color:var(--blu); color:var(--blu)}
+button.pulsante[aria-pressed="true"]{background:var(--blu); color:#FFFFFF; border-color:var(--blu)}
+button.pulsante:focus-visible{outline:2px solid var(--blu); outline-offset:2px}
+.comandi{display:flex; gap:7px; flex-wrap:wrap; margin-bottom:14px; align-items:center}
+.comandi .etich{font-family:var(--mono); font-size:11px; color:var(--ink-3); letter-spacing:.07em; text-transform:uppercase; margin-right:3px}
+.pie{padding-block:26px; color:var(--ink-3); font-size:12px; line-height:1.55; border-top:1px solid var(--line)}
+</style>
+
+<div class="top">
+  <div class="top-in">
+    <span class="marchio"><b>PedrengoMeteo</b> <span>Pedrengo · BG · 262 m</span></span>
+    <span class="top-ora"><span class="pallino" id="stato-pallino"></span><span id="stato-testo">avvio</span></span>
+    <span class="top-t" id="top-temp"></span>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header class="testata">
+    <h1>Il meteo di Pedrengo, deciso dopo aver guardato i dati</h1>
+    <p class="sotto">Diciotto modelli fisici di tredici centri meteorologici nazionali, 122 membri di ensemble e i pluviometri ARPA a tre chilometri dal paese. Nessuna previsione ricopiata da un provider: i numeri vengono incrociati, pesati in base a quanto ogni modello ha davvero azzeccato qui negli ultimi giorni, e poi verificati contro quello che è successo davvero.</p>
+    <div class="coord">
+      <span class="tag">45.694 N · 9.734 E</span>
+      <span class="tag" id="tag-modelli">18 modelli · 13 centri</span>
+      <span class="tag" id="tag-membri">122 membri di ensemble</span>
+      <span class="tag" id="tag-verifica">verifica in corso</span>
+    </div>
+    <div class="avanzamento" id="avanzamento" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+  </header>
+
+  <section id="sez-adesso">
+    <div class="occhiello">Adesso · misurato, non previsto</div>
+    <h2>Che tempo fa in questo momento</h2>
+    <p class="guida">Questo blocco non contiene previsioni. Sono letture di stazioni meteorologiche reali, aggiornate ogni dieci minuti. Accanto trovi cosa dicevano i modelli per quest'ora, così vedi lo scarto mentre succede.</p>
+    <div class="adesso" id="blocco-adesso">
+      <div class="riquadro"><div class="carico"><span class="spin"></span>lettura stazioni ARPA Lombardia</div></div>
+      <div class="riquadro"><div class="carico"><span class="spin"></span>confronto con i modelli</div></div>
+    </div>
+  </section>
+
+  <section id="sez-bollettino">
+    <div class="occhiello">Bollettino</div>
+    <h2>In parole</h2>
+    <div class="bollettino" id="bollettino"><p class="vuoto">Il testo viene scritto dai numeri, dopo averli visti.</p></div>
+    <div class="firma" id="firma-bollettino"></div>
+  </section>
+
+  <section id="sez-ore">
+    <div class="occhiello">Prossime 48 ore</div>
+    <h2>Ora per ora, con l'incertezza in chiaro</h2>
+    <p class="guida">La fascia attorno alla linea della temperatura è l'intervallo dentro cui cade il valore vero in circa otto casi su dieci, non un abbellimento grafico. Le barre della pioggia sono probabilità calcolate sui membri di ensemble e tarate sulla frequenza reale, non la media delle opinioni dei modelli.</p>
+    <div class="tela" id="tela-ore"><div class="carico"><span class="spin"></span>calcolo del consenso orario</div></div>
+    <div class="legenda" id="legenda-ore" hidden>
+      <span><i style="background:var(--arancio)"></i>temperatura, consenso pesato</span>
+      <span><i class="quad" style="background:var(--ar-fill); border:1px solid var(--arancio)"></i>intervallo 80 per cento</span>
+      <span><i class="quad" style="background:var(--blu)"></i>probabilità di pioggia, scala 0 - 100</span>
+      <span><i class="quad" style="background:var(--surface-3)"></i>ore di buio</span>
+      <span>il numero sopra la barra sono i millimetri attesi</span>
+    </div>
+  </section>
+
+  <section id="sez-giorni">
+    <div class="occhiello">Sette giorni</div>
+    <h2>Giorno per giorno</h2>
+    <p class="guida">Clicca una riga per vedere quali modelli sono d'accordo e quali no. Quando l'accordo è basso viene scritto, invece di scegliere una previsione a caso e presentarla come certa.</p>
+    <div id="lista-giorni"><div class="carico"><span class="spin"></span>aggregazione giornaliera</div></div>
+  </section>
+
+  <section id="sez-accordo">
+    <div class="occhiello">Dietro al numero</div>
+    <h2>Dove i modelli non sono d'accordo</h2>
+    <p class="guida">Ogni linea sottile è un modello diverso. La linea spessa è il consenso pesato. Quando le linee si aprono a ventaglio la previsione è fragile, ed è l'informazione che di solito nessuno mostra.</p>
+    <div class="comandi" id="comandi-ventaglio"></div>
+    <div class="tela" id="tela-ventaglio"><div class="carico"><span class="spin"></span>lettura dei singoli modelli</div></div>
+    <div class="legenda">
+      <span><i style="background:var(--ink-3); opacity:.45"></i>un modello singolo</span>
+      <span><i style="background:var(--blu); height:3px"></i>consenso pesato</span>
+      <span><i style="background:var(--viola)"></i>modello sotto il puntatore</span>
+      <span>passa sopra il grafico per vedere chi è chi</span>
+    </div>
+  </section>
+
+  <section id="sez-pagella">
+    <div class="occhiello">Pagella · verifica a posteriori</div>
+    <h2>Quanto ha sbagliato ogni modello, qui, negli ultimi giorni</h2>
+    <p class="guida">Per ogni modello viene recuperato cosa aveva previsto 24, 48 e 72 ore prima, e confrontato con le misure delle stazioni. L'errore medio che ne esce decide il peso nel consenso: chi sbaglia poco conta di più. Questa tabella è il motore, non un ornamento.</p>
+    <div id="tabella-pagella"><div class="carico"><span class="spin"></span>confronto delle previsioni passate con le misure</div></div>
+    <div class="imparato" id="imparato"></div>
+  </section>
+
+  <section id="sez-verifica">
+    <div class="occhiello">Onestà</div>
+    <h2>Cosa aveva detto il consenso e cosa è successo</h2>
+    <p class="guida">Per i giorni passati il consenso viene ricostruito con lo stesso identico metodo, usando solo le previsioni disponibili allora, e confrontato con le misure reali. Se sbaglia, resta scritto qui.</p>
+    <div id="tabella-verifica"><div class="carico"><span class="spin"></span>ricostruzione delle previsioni passate</div></div>
+  </section>
+
+  <section id="sez-metodo">
+    <div class="occhiello">Metodo</div>
+    <h2>Come viene calcolata ogni cifra</h2>
+    <div class="metodo">
+      <div class="blocco">
+        <h3>Le fonti</h3>
+        <p>Diciotto modelli fisici da tredici centri indipendenti: ECMWF (IFS e il modello a intelligenza artificiale AIFS), DWD tedesco (ICON globale, ICON-EU, ICON-D2 a 2 km), ARPAE ItaliaMeteo (ICON-2I a 2 km, girato in Italia), NOAA (GFS), Météo-France (ARPEGE e AROME a 1,5 km), Met Office britannico, JMA giapponese, KNMI olandese, DMI danese, MET Norvegia, ECCC canadese, CMA cinese.</p>
+      </div>
+      <div class="blocco">
+        <h3>Perché non aggrego le app</h3>
+        <p>Le app meteo commerciali non producono previsioni: rivendono quasi tutte gli stessi due o tre modelli globali. Sommarle significa contare lo stesso dato più volte e chiamarlo consenso. Qui i modelli vengono presi alla fonte e raggruppati per centro di origine, così ogni centro pesa una volta sola.</p>
+      </div>
+      <div class="blocco">
+        <h3>La verità di riferimento</h3>
+        <p>Le misure vengono dalle stazioni ARPA Lombardia più vicine, con un dato ogni dieci minuti: <span id="metodo-stazioni">Torre Boldone, Bergamo via Maffei, Bergamo via Goisis, Trescore Balneario</span>. Sono termometri e pluviometri veri, non rianalisi di modello.</p>
+      </div>
+      <div class="blocco">
+        <h3>Correzione di sito</h3>
+        <p>Una stazione non è Pedrengo. Prima di usarla come metro di giudizio viene misurato lo scarto sistematico fra stazione e punto griglia di Pedrengo sugli ultimi dieci giorni, e sottratto: altrimenti la posizione del termometro verrebbe scambiata per errore del modello. Scarto attuale: <b class="mono" id="metodo-offset">in calcolo</b>.</p>
+      </div>
+      <div class="blocco">
+        <h3>Correzione per regime</h3>
+        <p>L'errore dei modelli non è costante. Nelle notti serene la pianura si raffredda più di quanto i modelli a maglia larga riescano a vedere. L'errore viene quindi calcolato separatamente in quattro regimi (notte serena, notte coperta, giorno sereno, giorno coperto) e applicata la correzione giusta per la situazione, smorzata quando i campioni sono pochi.</p>
+      </div>
+      <div class="blocco">
+        <h3>Come nasce la probabilità di pioggia</h3>
+        <p>Non è la percentuale di modelli che dicono pioggia. È la frazione di membri di ensemble che superano 0,2 mm, calcolata separatamente per i tre sistemi probabilistici (ECMWF 51 membri, ICON-EPS 40, GEFS 31) in modo che il più numeroso non domini, combinata con l'accordo dei deterministici pesati per bravura, e infine tarata sulla frequenza con cui è piovuto davvero.</p>
+      </div>
+      <div class="blocco">
+        <h3>Sul termine perfetto</h3>
+        <p>L'atmosfera è un sistema caotico: due stati iniziali indistinguibili divergono in modo irreversibile, e questo è un limite fisico, non un difetto di ingegneria. Oltre le due settimane nessuna previsione batte la climatologia, e per i temporali estivi il limite utile è molto più corto. Quello che si può fare, ed è quello che fa questo sito, è togliere l'errore sistematico, misurare l'incertezza che resta e dichiararla, invece di nasconderla dietro un'icona di nuvola.</p>
+      </div>
+      <div class="blocco">
+        <h3>Aggiornamento</h3>
+        <p>I dati vengono riscaricati a ogni apertura della pagina. I modelli globali girano quattro volte al giorno (00, 06, 12 e 18 UTC), quelli ad alta risoluzione fino a otto. Le stazioni ARPA aggiornano ogni dieci minuti.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="pie">
+    <p>Dati: Open-Meteo, che dà accesso ai modelli dei servizi meteorologici nazionali (licenza CC BY 4.0), e ARPA Lombardia (open data, dati.lombardia.it). Elaborazione, pesatura e verifica eseguite dentro il browser.</p>
+    <p id="pie-tempi" class="mono" style="margin-top:8px"></p>
+  </footer>
+</div>
