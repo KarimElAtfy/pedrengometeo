@@ -1,0 +1,2130 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Previsioni per Pedrengo costruite incrociando 18 modelli meteorologici di 13 centri nazionali, verificate ogni giorno contro i pluviometri ARPA Lombardia.">
+<meta name="theme-color" content="#EDF0F3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0B131A" media="(prefers-color-scheme: dark)">
+<title>PedrengoMeteo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
+<style>
+/* azzeramento di base, il sito gira da solo senza nessuna impalcatura esterna */
+html{color-scheme:light dark; -webkit-text-size-adjust:100%}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none !important}
+
+:root{
+  padding-top:env(safe-area-inset-top, 0px);
+  padding-bottom:env(safe-area-inset-bottom, 0px);
+  --paper:#EDF0F3; --surface:#FFFFFF; --surface-2:#F6F8FA; --surface-3:#E7ECF0;
+  --ink:#0F1D28; --ink-2:#3B5165; --ink-3:#6C8398;
+  --line:#D6DEE5; --line-2:#BFCAD4;
+  --blu:#1E6FA8; --arancio:#C4561D; --viola:#6A4C93;
+  --ok:#12795A; --attesa:#8A6100; --allerta:#A32B21;
+  --blu-fill:rgba(30,111,168,.13); --blu-fill-2:rgba(30,111,168,.26);
+  --ar-fill:rgba(196,86,29,.14);
+  --ombra:0 1px 2px rgba(15,29,40,.06), 0 6px 18px rgba(15,29,40,.05);
+  --ui:"Archivo","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --prosa:"Newsreader",Georgia,"Times New Roman",serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0B131A; --surface:#111E27; --surface-2:#16242E; --surface-3:#1D2F3A;
+    --ink:#E2ECF3; --ink-2:#A6BBCA; --ink-3:#78909F;
+    --line:#22333F; --line-2:#2F4552;
+    --blu:#3F97CE; --arancio:#D06E38; --viola:#9478C4;
+    --ok:#3FA57A; --attesa:#D2A03C; --allerta:#E08279;
+    --blu-fill:rgba(63,151,206,.17); --blu-fill-2:rgba(63,151,206,.32);
+    --ar-fill:rgba(208,110,56,.18);
+    --ombra:0 1px 2px rgba(0,0,0,.35), 0 6px 18px rgba(0,0,0,.28);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0B131A; --surface:#111E27; --surface-2:#16242E; --surface-3:#1D2F3A;
+  --ink:#E2ECF3; --ink-2:#A6BBCA; --ink-3:#78909F;
+  --line:#22333F; --line-2:#2F4552;
+  --blu:#3F97CE; --arancio:#D06E38; --viola:#9478C4;
+  --ok:#3FA57A; --attesa:#D2A03C; --allerta:#E08279;
+  --blu-fill:rgba(63,151,206,.17); --blu-fill-2:rgba(63,151,206,.32);
+  --ar-fill:rgba(208,110,56,.18);
+  --ombra:0 1px 2px rgba(0,0,0,.35), 0 6px 18px rgba(0,0,0,.28);
+}
+*{box-sizing:border-box}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:var(--ui); font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px; margin:0 auto; padding-left:18px; padding-right:18px; padding-block:0 60px}
+h1,h2,h3{margin:0; text-wrap:balance; font-weight:700; letter-spacing:-.01em}
+p{margin:0}
+a{color:var(--blu)}
+.mono{font-family:var(--mono); font-variant-numeric:tabular-nums}
+
+.top{
+  position:sticky; top:env(safe-area-inset-top,0px); z-index:40;
+  background:var(--paper); border-bottom:1px solid var(--line);
+}
+.top-in{max-width:1080px; margin:0 auto; padding:9px 18px; display:flex; align-items:center; gap:14px; flex-wrap:wrap}
+.marchio{display:flex; align-items:baseline; gap:8px; margin-right:auto}
+.marchio b{font-size:17px; letter-spacing:-.02em}
+.marchio span{font-family:var(--mono); font-size:10.5px; color:var(--ink-3); letter-spacing:.09em; text-transform:uppercase}
+.top-ora{display:flex; align-items:center; gap:7px; font-family:var(--mono); font-size:12.5px; color:var(--ink-2)}
+.pallino{width:7px; height:7px; border-radius:50%; background:var(--ink-3); flex:none}
+.pallino.vivo{background:var(--ok); box-shadow:0 0 0 3px color-mix(in srgb, var(--ok) 22%, transparent)}
+.pallino.rotto{background:var(--allerta)}
+.top-t{font-family:var(--mono); font-weight:600; font-size:15px; color:var(--ink)}
+
+.testata{padding-block:34px 26px; border-bottom:1px solid var(--line)}
+.testata h1{font-size:clamp(29px,6.2vw,45px); line-height:1.03; letter-spacing:-.033em}
+.testata .sotto{margin-top:11px; color:var(--ink-2); font-size:14.5px; max-width:64ch}
+.coord{margin-top:13px; display:flex; gap:7px; flex-wrap:wrap}
+.tag{
+  font-family:var(--mono); font-size:11px; letter-spacing:.04em; color:var(--ink-2);
+  border:1px solid var(--line-2); border-radius:999px; padding:3px 9px; background:var(--surface);
+}
+section{padding-block:34px; border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:0}
+.occhiello{
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--ink-3); display:flex; align-items:center; gap:10px; margin-bottom:6px;
+}
+.occhiello::after{content:""; flex:1; height:1px; background:var(--line)}
+h2{font-size:22px; letter-spacing:-.02em; margin-bottom:5px}
+.guida{color:var(--ink-2); font-size:13.5px; max-width:72ch; margin-bottom:18px}
+
+.adesso{display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); gap:16px; align-items:stretch}
+@media (max-width:780px){.adesso{grid-template-columns:1fr}}
+.riquadro{background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:18px; box-shadow:var(--ombra)}
+.misura{display:flex; align-items:flex-start; gap:20px; flex-wrap:wrap}
+.grossa{font-family:var(--mono); font-weight:600; font-size:clamp(42px,10.5vw,62px); line-height:.92; letter-spacing:-.04em}
+.grossa small{font-size:.35em; font-weight:500; color:var(--ink-3); letter-spacing:0}
+.misura-lato{display:flex; flex-direction:column; gap:4px; padding-top:5px; min-width:158px; flex:1}
+.riga-dato{display:flex; justify-content:space-between; gap:14px; font-size:13px; border-bottom:1px dotted var(--line); padding-bottom:3px}
+.riga-dato:last-child{border-bottom:0}
+.riga-dato span:first-child{color:var(--ink-3)}
+.riga-dato b{font-family:var(--mono); font-weight:500}
+.fonte{margin-top:14px; padding-top:11px; border-top:1px solid var(--line); font-size:12px; color:var(--ink-3); line-height:1.45}
+.scarto b{font-family:var(--mono); font-size:20px; font-weight:600}
+
+.bollettino{
+  font-family:var(--prosa); font-size:clamp(17px,2.3vw,19.5px); line-height:1.56; color:var(--ink); max-width:64ch;
+}
+.bollettino p+p{margin-top:12px}
+.firma{margin-top:16px; font-family:var(--mono); font-size:11px; color:var(--ink-3); letter-spacing:.05em; text-transform:uppercase}
+
+.tela{position:relative; background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:14px 8px 6px; box-shadow:var(--ombra)}
+.tela svg{display:block; width:100%; height:auto}
+.legenda{display:flex; gap:16px; flex-wrap:wrap; padding:10px 4px 2px; font-size:12px; color:var(--ink-2)}
+.legenda i{display:inline-block; width:14px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle}
+.legenda .quad{width:11px; height:11px; border-radius:2px}
+.suggerimento{
+  position:absolute; pointer-events:none; opacity:0; transition:opacity .1s; left:0; top:0;
+  background:var(--surface); border:1px solid var(--line-2); border-radius:8px;
+  padding:9px 11px; box-shadow:var(--ombra); font-size:12.5px; min-width:190px; z-index:10;
+}
+.suggerimento.on{opacity:1}
+.suggerimento h4{margin:0 0 6px; font-size:11.5px; font-family:var(--mono); letter-spacing:.04em; color:var(--ink-3); text-transform:uppercase; font-weight:500}
+.sug-riga{display:flex; justify-content:space-between; gap:16px; padding:1.5px 0}
+.sug-riga b{font-family:var(--mono); font-weight:500}
+
+.giorni{display:flex; flex-direction:column; border:1px solid var(--line); border-radius:var(--r); overflow:hidden; background:var(--surface); box-shadow:var(--ombra)}
+.giorno{
+  display:grid; grid-template-columns:100px 92px minmax(110px,1fr) 124px 92px; gap:14px; align-items:center;
+  padding:13px 16px; border:0; border-bottom:1px solid var(--line); cursor:pointer;
+  width:100%; text-align:left; font:inherit; color:inherit; background:var(--surface);
+}
+.giorno:last-of-type{border-bottom:0}
+.giorno:hover{background:var(--surface-2)}
+.giorno[aria-expanded="true"]{background:var(--surface-2)}
+.giorno:focus-visible{outline:2px solid var(--blu); outline-offset:-2px}
+@media (max-width:860px){
+  .giorno{grid-template-columns:1fr auto; grid-template-areas:"data simbolo" "barra barra" "pioggia fiducia"; gap:9px 12px}
+  .g-data{grid-area:data} .g-simbolo{grid-area:simbolo; justify-content:flex-end} .g-barra{grid-area:barra} .g-pioggia{grid-area:pioggia} .g-fiducia{grid-area:fiducia; justify-self:end}
+}
+.g-data b{display:block; font-size:14px; text-transform:capitalize}
+.g-data span{font-family:var(--mono); font-size:11.5px; color:var(--ink-3)}
+.g-simbolo{display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--ink-2); min-width:0}
+.g-simbolo span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.g-barra{position:relative; height:26px}
+.g-barra .traccia{position:absolute; left:0; right:0; top:12px; height:2px; background:var(--line); border-radius:2px}
+.g-barra .arco{position:absolute; top:9px; height:8px; border-radius:4px; background:linear-gradient(90deg, var(--blu), var(--arancio))}
+.g-barra .et{position:absolute; top:-2px; font-family:var(--mono); font-size:11.5px; font-weight:500; font-variant-numeric:tabular-nums}
+.g-pioggia{display:flex; align-items:center; gap:8px}
+.mini{width:50px; height:6px; background:var(--surface-3); border-radius:3px; overflow:hidden; flex:none}
+.mini i{display:block; height:100%; background:var(--blu); border-radius:3px}
+.g-pioggia span{font-family:var(--mono); font-size:12.5px; font-variant-numeric:tabular-nums}
+.chip{
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.05em; text-transform:uppercase;
+  padding:3px 8px; border-radius:999px; border:1px solid; display:inline-flex; align-items:center; gap:5px; white-space:nowrap;
+}
+.chip.alta{color:var(--ok); border-color:color-mix(in srgb,var(--ok) 42%,transparent); background:color-mix(in srgb,var(--ok) 9%,transparent)}
+.chip.media{color:var(--attesa); border-color:color-mix(in srgb,var(--attesa) 42%,transparent); background:color-mix(in srgb,var(--attesa) 9%,transparent)}
+.chip.bassa{color:var(--allerta); border-color:color-mix(in srgb,var(--allerta) 42%,transparent); background:color-mix(in srgb,var(--allerta) 9%,transparent)}
+.dettaglio{padding:2px 16px 16px; background:var(--surface-2); border-bottom:1px solid var(--line); font-size:13.5px; color:var(--ink-2)}
+.dettaglio .col{display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:18px; padding-top:14px}
+.dettaglio h4{margin:0 0 7px; font-size:10.5px; font-family:var(--mono); letter-spacing:.09em; text-transform:uppercase; color:var(--ink-3); font-weight:500}
+.dettaglio p{line-height:1.5}
+.elenco-mod{display:flex; flex-wrap:wrap; gap:5px}
+.pill{font-family:var(--mono); font-size:11px; padding:2.5px 7px; border-radius:5px; background:var(--surface-3); color:var(--ink-2)}
+.pill.bagnato{background:var(--blu-fill-2); color:var(--blu)}
+.pill.asciutto{background:var(--surface-3); color:var(--ink-3)}
+
+.scorri{overflow-x:auto; border:1px solid var(--line); border-radius:var(--r); background:var(--surface); box-shadow:var(--ombra)}
+table{border-collapse:collapse; width:100%; min-width:700px; font-size:13px}
+th,td{padding:9px 12px; text-align:right; border-bottom:1px solid var(--line); white-space:nowrap}
+th{
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3);
+  font-weight:500; background:var(--surface); border-bottom:1px solid var(--line-2);
+}
+th:first-child,td:first-child{text-align:left}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--surface-2)}
+td.v{font-family:var(--mono); font-variant-numeric:tabular-nums}
+.ente{display:block; font-size:11px; color:var(--ink-3); font-family:var(--ui)}
+.barra-peso{display:flex; align-items:center; gap:7px; justify-content:flex-end}
+.barra-peso i{display:block; height:7px; background:var(--blu); border-radius:2px; min-width:1px}
+.rank{font-family:var(--mono); color:var(--ink-3); font-size:11.5px; width:20px; display:inline-block}
+
+.imparato{display:grid; grid-template-columns:repeat(auto-fit,minmax(258px,1fr)); gap:12px; margin-top:18px}
+.nota{background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--blu); border-radius:6px; padding:12px 14px; font-size:13.5px; line-height:1.45}
+.nota b{display:block; font-family:var(--mono); font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px; font-weight:500}
+.nota.corr{border-left-color:var(--arancio)}
+.nota.att{border-left-color:var(--attesa)}
+
+.metodo{columns:2; column-gap:38px; font-size:13.5px; color:var(--ink-2); line-height:1.6}
+@media (max-width:780px){.metodo{columns:1}}
+.metodo h3{font-size:14px; color:var(--ink); margin:0 0 5px}
+.metodo .blocco{break-inside:avoid; margin-bottom:18px}
+
+/* elementi dei grafici */
+.gx{stroke:var(--line-2); stroke-width:1}
+.gx-lieve{stroke:var(--line); stroke-width:1; stroke-dasharray:2 4}
+.notte{fill:var(--surface-3); opacity:.55}
+.et-asse{fill:var(--ink-3); font-family:var(--mono); font-size:10.5px}
+.et-giorno{fill:var(--ink-2); font-family:var(--mono); font-size:10.5px; font-weight:500; letter-spacing:.08em; text-transform:uppercase}
+.linea-t{fill:none; stroke:var(--arancio); stroke-width:2; stroke-linejoin:round; stroke-linecap:round}
+.fascia-t{fill:var(--ar-fill); stroke:none}
+.barra-p{fill:var(--blu)}
+.et-mm{fill:var(--blu); font-family:var(--mono); font-size:9.5px; font-weight:500}
+.punto-t{fill:var(--arancio); stroke:var(--surface); stroke-width:2}
+.zero{stroke:var(--line-2); stroke-width:1}
+.traccia-mod{fill:none; stroke:var(--ink-3); stroke-width:1; opacity:.3}
+.traccia-mod.evid{stroke:var(--viola); stroke-width:2.2; opacity:1}
+.linea-cons{fill:none; stroke:var(--blu); stroke-width:2.6; stroke-linejoin:round; stroke-linecap:round}
+.mirino{stroke:var(--ink-3); stroke-width:1; stroke-dasharray:3 3}
+
+.carico{display:flex; align-items:center; gap:10px; color:var(--ink-3); font-size:13px; font-family:var(--mono); padding:20px 0}
+.spin{width:13px; height:13px; border:2px solid var(--line-2); border-top-color:var(--blu); border-radius:50%; animation:g .7s linear infinite; flex:none}
+@keyframes g{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation-duration:2.4s}}
+.errore{background:color-mix(in srgb,var(--allerta) 8%,var(--surface)); border:1px solid color-mix(in srgb,var(--allerta) 32%,transparent); color:var(--allerta); padding:12px 14px; border-radius:8px; font-size:13px}
+.vuoto{color:var(--ink-3); font-size:13px; padding:8px 0}
+.avanzamento{display:flex; gap:4px; margin-top:14px}
+.avanzamento i{height:3px; flex:1; background:var(--line); border-radius:2px; transition:background .35s}
+.avanzamento i.fatto{background:var(--blu)}
+button.pulsante{
+  font:inherit; font-size:12.5px; font-family:var(--mono); color:var(--ink-2); background:var(--surface);
+  border:1px solid var(--line-2); border-radius:7px; padding:5px 11px; cursor:pointer;
+}
+button.pulsante:hover{border-color:var(--blu); color:var(--blu)}
+button.pulsante[aria-pressed="true"]{background:var(--blu); color:#FFFFFF; border-color:var(--blu)}
+button.pulsante:focus-visible{outline:2px solid var(--blu); outline-offset:2px}
+.comandi{display:flex; gap:7px; flex-wrap:wrap; margin-bottom:14px; align-items:center}
+.comandi .etich{font-family:var(--mono); font-size:11px; color:var(--ink-3); letter-spacing:.07em; text-transform:uppercase; margin-right:3px}
+.pie{padding-block:26px; color:var(--ink-3); font-size:12px; line-height:1.55; border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="top-in">
+    <span class="marchio"><b>PedrengoMeteo</b> <span>Pedrengo · BG · 262 m</span></span>
+    <span class="top-ora"><span class="pallino" id="stato-pallino"></span><span id="stato-testo">avvio</span></span>
+    <span class="top-t" id="top-temp"></span>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header class="testata">
+    <h1>Il meteo di Pedrengo, deciso dopo aver guardato i dati</h1>
+    <p class="sotto">Diciotto modelli fisici di tredici centri meteorologici nazionali, 122 membri di ensemble e i pluviometri ARPA a tre chilometri dal paese. Nessuna previsione ricopiata da un provider: i numeri vengono incrociati, pesati in base a quanto ogni modello ha davvero azzeccato qui negli ultimi giorni, e poi verificati contro quello che è successo davvero.</p>
+    <div class="coord">
+      <span class="tag">45.694 N · 9.734 E</span>
+      <span class="tag" id="tag-modelli">18 modelli · 13 centri</span>
+      <span class="tag" id="tag-membri">122 membri di ensemble</span>
+      <span class="tag" id="tag-verifica">verifica in corso</span>
+    </div>
+    <div class="avanzamento" id="avanzamento" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+  </header>
+
+  <section id="sez-adesso">
+    <div class="occhiello">Adesso · misurato, non previsto</div>
+    <h2>Che tempo fa in questo momento</h2>
+    <p class="guida">Questo blocco non contiene previsioni. Sono letture di stazioni meteorologiche reali, aggiornate ogni dieci minuti. Accanto trovi cosa dicevano i modelli per quest'ora, così vedi lo scarto mentre succede.</p>
+    <div class="adesso" id="blocco-adesso">
+      <div class="riquadro"><div class="carico"><span class="spin"></span>lettura stazioni ARPA Lombardia</div></div>
+      <div class="riquadro"><div class="carico"><span class="spin"></span>confronto con i modelli</div></div>
+    </div>
+  </section>
+
+  <section id="sez-bollettino">
+    <div class="occhiello">Bollettino</div>
+    <h2>In parole</h2>
+    <div class="bollettino" id="bollettino"><p class="vuoto">Il testo viene scritto dai numeri, dopo averli visti.</p></div>
+    <div class="firma" id="firma-bollettino"></div>
+  </section>
+
+  <section id="sez-ore">
+    <div class="occhiello">Prossime 48 ore</div>
+    <h2>Ora per ora, con l'incertezza in chiaro</h2>
+    <p class="guida">La fascia attorno alla linea della temperatura è l'intervallo dentro cui cade il valore vero in circa otto casi su dieci, non un abbellimento grafico. Le barre della pioggia sono probabilità calcolate sui membri di ensemble e tarate sulla frequenza reale, non la media delle opinioni dei modelli.</p>
+    <div class="tela" id="tela-ore"><div class="carico"><span class="spin"></span>calcolo del consenso orario</div></div>
+    <div class="legenda" id="legenda-ore" hidden>
+      <span><i style="background:var(--arancio)"></i>temperatura, consenso pesato</span>
+      <span><i class="quad" style="background:var(--ar-fill); border:1px solid var(--arancio)"></i>intervallo 80 per cento</span>
+      <span><i class="quad" style="background:var(--blu)"></i>probabilità di pioggia, scala 0 - 100</span>
+      <span><i class="quad" style="background:var(--surface-3)"></i>ore di buio</span>
+      <span>il numero sopra la barra sono i millimetri attesi</span>
+    </div>
+  </section>
+
+  <section id="sez-giorni">
+    <div class="occhiello">Sette giorni</div>
+    <h2>Giorno per giorno</h2>
+    <p class="guida">Clicca una riga per vedere quali modelli sono d'accordo e quali no. Quando l'accordo è basso viene scritto, invece di scegliere una previsione a caso e presentarla come certa.</p>
+    <div id="lista-giorni"><div class="carico"><span class="spin"></span>aggregazione giornaliera</div></div>
+  </section>
+
+  <section id="sez-accordo">
+    <div class="occhiello">Dietro al numero</div>
+    <h2>Dove i modelli non sono d'accordo</h2>
+    <p class="guida">Ogni linea sottile è un modello diverso. La linea spessa è il consenso pesato. Quando le linee si aprono a ventaglio la previsione è fragile, ed è l'informazione che di solito nessuno mostra.</p>
+    <div class="comandi" id="comandi-ventaglio"></div>
+    <div class="tela" id="tela-ventaglio"><div class="carico"><span class="spin"></span>lettura dei singoli modelli</div></div>
+    <div class="legenda">
+      <span><i style="background:var(--ink-3); opacity:.45"></i>un modello singolo</span>
+      <span><i style="background:var(--blu); height:3px"></i>consenso pesato</span>
+      <span><i style="background:var(--viola)"></i>modello sotto il puntatore</span>
+      <span>passa sopra il grafico per vedere chi è chi</span>
+    </div>
+  </section>
+
+  <section id="sez-pagella">
+    <div class="occhiello">Pagella · verifica a posteriori</div>
+    <h2>Quanto ha sbagliato ogni modello, qui, negli ultimi giorni</h2>
+    <p class="guida">Per ogni modello viene recuperato cosa aveva previsto 24, 48 e 72 ore prima, e confrontato con le misure delle stazioni. L'errore medio che ne esce decide il peso nel consenso: chi sbaglia poco conta di più. Questa tabella è il motore, non un ornamento.</p>
+    <div id="tabella-pagella"><div class="carico"><span class="spin"></span>confronto delle previsioni passate con le misure</div></div>
+    <div class="imparato" id="imparato"></div>
+  </section>
+
+  <section id="sez-verifica">
+    <div class="occhiello">Onestà</div>
+    <h2>Cosa aveva detto il consenso e cosa è successo</h2>
+    <p class="guida">Per i giorni passati il consenso viene ricostruito con lo stesso identico metodo, usando solo le previsioni disponibili allora, e confrontato con le misure reali. Se sbaglia, resta scritto qui.</p>
+    <div id="tabella-verifica"><div class="carico"><span class="spin"></span>ricostruzione delle previsioni passate</div></div>
+  </section>
+
+  <section id="sez-metodo">
+    <div class="occhiello">Metodo</div>
+    <h2>Come viene calcolata ogni cifra</h2>
+    <div class="metodo">
+      <div class="blocco">
+        <h3>Le fonti</h3>
+        <p>Diciotto modelli fisici da tredici centri indipendenti: ECMWF (IFS e il modello a intelligenza artificiale AIFS), DWD tedesco (ICON globale, ICON-EU, ICON-D2 a 2 km), ARPAE ItaliaMeteo (ICON-2I a 2 km, girato in Italia), NOAA (GFS), Météo-France (ARPEGE e AROME a 1,5 km), Met Office britannico, JMA giapponese, KNMI olandese, DMI danese, MET Norvegia, ECCC canadese, CMA cinese.</p>
+      </div>
+      <div class="blocco">
+        <h3>Perché non aggrego le app</h3>
+        <p>Le app meteo commerciali non producono previsioni: rivendono quasi tutte gli stessi due o tre modelli globali. Sommarle significa contare lo stesso dato più volte e chiamarlo consenso. Qui i modelli vengono presi alla fonte e raggruppati per centro di origine, così ogni centro pesa una volta sola.</p>
+      </div>
+      <div class="blocco">
+        <h3>La verità di riferimento</h3>
+        <p>Le misure vengono dalle stazioni ARPA Lombardia più vicine, con un dato ogni dieci minuti: <span id="metodo-stazioni">Torre Boldone, Bergamo via Maffei, Bergamo via Goisis, Trescore Balneario</span>. Sono termometri e pluviometri veri, non rianalisi di modello.</p>
+      </div>
+      <div class="blocco">
+        <h3>Correzione di sito</h3>
+        <p>Una stazione non è Pedrengo. Prima di usarla come metro di giudizio viene misurato lo scarto sistematico fra stazione e punto griglia di Pedrengo sugli ultimi dieci giorni, e sottratto: altrimenti la posizione del termometro verrebbe scambiata per errore del modello. Scarto attuale: <b class="mono" id="metodo-offset">in calcolo</b>.</p>
+      </div>
+      <div class="blocco">
+        <h3>Correzione per regime</h3>
+        <p>L'errore dei modelli non è costante. Nelle notti serene la pianura si raffredda più di quanto i modelli a maglia larga riescano a vedere. L'errore viene quindi calcolato separatamente in quattro regimi (notte serena, notte coperta, giorno sereno, giorno coperto) e applicata la correzione giusta per la situazione, smorzata quando i campioni sono pochi.</p>
+      </div>
+      <div class="blocco">
+        <h3>Come nasce la probabilità di pioggia</h3>
+        <p>Non è la percentuale di modelli che dicono pioggia. È la frazione di membri di ensemble che superano 0,2 mm, calcolata separatamente per i tre sistemi probabilistici (ECMWF 51 membri, ICON-EPS 40, GEFS 31) in modo che il più numeroso non domini, combinata con l'accordo dei deterministici pesati per bravura, e infine tarata sulla frequenza con cui è piovuto davvero.</p>
+      </div>
+      <div class="blocco">
+        <h3>Sul termine perfetto</h3>
+        <p>L'atmosfera è un sistema caotico: due stati iniziali indistinguibili divergono in modo irreversibile, e questo è un limite fisico, non un difetto di ingegneria. Oltre le due settimane nessuna previsione batte la climatologia, e per i temporali estivi il limite utile è molto più corto. Quello che si può fare, ed è quello che fa questo sito, è togliere l'errore sistematico, misurare l'incertezza che resta e dichiararla, invece di nasconderla dietro un'icona di nuvola.</p>
+      </div>
+      <div class="blocco">
+        <h3>Aggiornamento</h3>
+        <p>I dati vengono riscaricati a ogni apertura della pagina. I modelli globali girano quattro volte al giorno (00, 06, 12 e 18 UTC), quelli ad alta risoluzione fino a otto. Le stazioni ARPA aggiornano ogni dieci minuti.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="pie">
+    <p>Dati: Open-Meteo, che dà accesso ai modelli dei servizi meteorologici nazionali (licenza CC BY 4.0), e ARPA Lombardia (open data, dati.lombardia.it). Elaborazione, pesatura e verifica eseguite dentro il browser.</p>
+    <p id="pie-tempi" class="mono" style="margin-top:8px"></p>
+  </footer>
+</div>
+<script>
+/* ============================================================
+   PedrengoMeteo - motore
+   Ingestione multimodello, verifica a posteriori sulle misure
+   ARPA, pesatura per bravura e fusione del consenso.
+   ============================================================ */
+
+const SITO = { lat: 45.694, lon: 9.734, quota: 262, nome: 'Pedrengo' };
+
+const MODELLI = [
+  { id: 'ecmwf_ifs025',              nome: 'IFS',          ente: 'ECMWF',              fam: 'ecmwf',  ris: '25 km' },
+  { id: 'ecmwf_aifs025_single',      nome: 'AIFS',         ente: 'ECMWF, rete neurale', fam: 'aifs',  ris: '25 km' },
+  { id: 'icon_seamless',             nome: 'ICON',         ente: 'DWD Germania',       fam: 'icon',   ris: '2-13 km' },
+  { id: 'icon_eu',                   nome: 'ICON-EU',      ente: 'DWD Germania',       fam: 'icon',   ris: '7 km' },
+  { id: 'icon_d2',                   nome: 'ICON-D2',      ente: 'DWD Germania',       fam: 'icon',   ris: '2 km' },
+  { id: 'italia_meteo_arpae_icon_2i',nome: 'ICON-2I',      ente: 'ItaliaMeteo ARPAE',  fam: 'icon2i', ris: '2 km' },
+  { id: 'gfs_seamless',              nome: 'GFS',          ente: 'NOAA Stati Uniti',   fam: 'gfs',    ris: '11-25 km' },
+  { id: 'gfs_global',                nome: 'GFS globale',  ente: 'NOAA Stati Uniti',   fam: 'gfs',    ris: '25 km' },
+  { id: 'meteofrance_seamless',      nome: 'AROME-ARPEGE', ente: 'Meteo-France',       fam: 'mf',     ris: '1.5-11 km' },
+  { id: 'arpege_europe',             nome: 'ARPEGE',       ente: 'Meteo-France',       fam: 'mf',     ris: '11 km' },
+  { id: 'arome_france_hd',           nome: 'AROME HD',     ente: 'Meteo-France',       fam: 'mf',     ris: '1.5 km' },
+  { id: 'ukmo_seamless',             nome: 'UM',           ente: 'Met Office UK',      fam: 'ukmo',   ris: '2-10 km' },
+  { id: 'jma_seamless',              nome: 'GSM',          ente: 'JMA Giappone',       fam: 'jma',    ris: '55 km' },
+  { id: 'knmi_seamless',             nome: 'HARMONIE',     ente: 'KNMI Paesi Bassi',   fam: 'knmi',   ris: '2-5.5 km' },
+  { id: 'dmi_seamless',              nome: 'HARMONIE DK',  ente: 'DMI Danimarca',      fam: 'dmi',    ris: '2 km' },
+  { id: 'metno_seamless',            nome: 'MEPS',         ente: 'MET Norvegia',       fam: 'metno',  ris: '1-2.5 km' },
+  { id: 'gem_seamless',              nome: 'GEM',          ente: 'ECCC Canada',        fam: 'gem',    ris: '2.5-15 km' },
+  { id: 'cma_grapes_global',         nome: 'GRAPES',       ente: 'CMA Cina',           fam: 'cma',    ris: '15 km' }
+];
+const PER_ID = Object.fromEntries(MODELLI.map(m => [m.id, m]));
+const FAMIGLIE = [...new Set(MODELLI.map(m => m.fam))];
+
+const STAZIONI = [
+  { id: '8145',  tipo: 'temp',    nome: 'Torre Boldone',      km: 3.3, quota: 311 },
+  { id: '19022', tipo: 'temp',    nome: 'Bergamo via Maffei', km: 4.6, quota: 249 },
+  { id: '5864',  tipo: 'temp',    nome: 'Bergamo via Goisis', km: 4.2, quota: 290 },
+  { id: '8161',  tipo: 'pioggia', nome: 'Torre Boldone',      km: 3.3, quota: 311 },
+  { id: '19026', tipo: 'pioggia', nome: 'Bergamo via Maffei', km: 4.6, quota: 249 },
+  { id: '5857',  tipo: 'pioggia', nome: 'Bergamo via Goisis', km: 4.2, quota: 290 },
+  { id: '22322', tipo: 'pioggia', nome: 'Trescore Balneario', km: 8.7, quota: 251 },
+  { id: '6158',  tipo: 'umidita', nome: 'Bergamo via Goisis', km: 4.2, quota: 290 },
+  { id: '19103', tipo: 'vento',   nome: 'Bergamo via Goisis', km: 4.2, quota: 290 },
+  { id: '5981',  tipo: 'dirvento',nome: 'Bergamo via Goisis', km: 4.2, quota: 290 }
+];
+
+const VARIABILI = ['temperature_2m', 'precipitation', 'precipitation_probability', 'weather_code',
+                   'cloud_cover', 'wind_speed_10m', 'wind_gusts_10m', 'relative_humidity_2m', 'snowfall'];
+
+const SOGLIA_PIOGGIA = 0.2;   // mm/h oltre cui si considera che stia piovendo
+const GIORNI_VERIFICA = 10;   // finestra di misure ARPA scaricata
+
+/* ---------------- utilità di base ---------------- */
+
+const fmtSE = new Intl.DateTimeFormat('sv-SE', {
+  timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit',
+  hour: '2-digit', minute: '2-digit', hour12: false
+});
+
+function chiaveOra(d) { return fmtSE.format(d).replace(' ', 'T').slice(0, 13); }
+function chiaveDa(k, dOre) { return chiaveOra(new Date(dataDaChiave(k).getTime() + dOre * 3600e3)); }
+
+// una chiave locale "2026-09-17T14" torna a essere un istante reale,
+// anche a cavallo del cambio dell'ora legale
+function dataDaChiave(k) {
+  const bersaglio = Date.parse(k + ':00:00Z');
+  let t = bersaglio;
+  for (let i = 0; i < 4; i++) {
+    const ottenuta = chiaveOra(new Date(t));
+    if (ottenuta === k) break;
+    t += bersaglio - Date.parse(ottenuta + ':00:00Z');
+  }
+  return new Date(t);
+}
+
+const num = v => (typeof v === 'number' && isFinite(v)) ? v : null;
+const media = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : null;
+const somma = a => a.reduce((s, x) => s + x, 0);
+const chiudi = (v, a, b) => Math.max(a, Math.min(b, v));
+
+function mediaPesata(coppie) {           // [[valore, peso]]
+  let sv = 0, sp = 0;
+  for (const [v, p] of coppie) { if (v === null || !isFinite(v)) continue; sv += v * p; sp += p; }
+  return sp > 0 ? sv / sp : null;
+}
+
+function quantilePesato(coppie, q) {
+  const v = coppie.filter(c => c[0] !== null && isFinite(c[0])).sort((a, b) => a[0] - b[0]);
+  if (!v.length) return null;
+  const tot = somma(v.map(c => c[1]));
+  if (tot <= 0) return null;
+  let acc = 0;
+  for (let i = 0; i < v.length; i++) {
+    const prima = acc / tot, dopo = (acc + v[i][1]) / tot;
+    if (q <= dopo) {
+      if (i === 0 || q <= prima) return v[i][0];
+      const t = (q - prima) / Math.max(1e-9, dopo - prima);
+      return v[i - 1][0] + (v[i][0] - v[i - 1][0]) * Math.min(1, t);
+    }
+    acc += v[i][1];
+  }
+  return v[v.length - 1][0];
+}
+
+const medianaPesata = c => quantilePesato(c, 0.5);
+
+/* ---------------- rete ---------------- */
+
+async function scarica(url, ms = 30000) {
+  const ctrl = new AbortController();
+  const stop = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return await r.json();
+  } finally { clearTimeout(stop); }
+}
+
+async function scaricaConRitento(url, ms) {
+  try { return await scarica(url, ms); }
+  catch (e) { await new Promise(r => setTimeout(r, 900)); return await scarica(url, ms); }
+}
+
+function urlOpenMeteo(base, extra) {
+  const p = new URLSearchParams({
+    latitude: SITO.lat, longitude: SITO.lon, elevation: SITO.quota,
+    timezone: 'Europe/Rome', ...extra
+  });
+  return base + '?' + p.toString();
+}
+
+const URL_ARPA = 'https://www.dati.lombardia.it/resource/647i-nhxk.json';
+
+function urlArpa(ids, daISO, limite) {
+  const inClause = ids.map(i => "'" + i + "'").join(',');
+  const p = new URLSearchParams({
+    '$select': 'idsensore,data,valore',
+    '$where': `idsensore in(${inClause}) AND data > '${daISO}'`,
+    '$order': 'data DESC',
+    '$limit': String(limite)
+  });
+  return URL_ARPA + '?' + p.toString();
+}
+
+/* ---------------- lettura Open-Meteo multimodello ---------------- */
+
+function leggiMultiModello(risposta, listaId, variabili) {
+  const h = risposta && risposta.hourly;
+  const fuori = { ore: [], serie: {} };
+  if (!h || !h.time) return fuori;
+  fuori.ore = h.time.map(t => t.slice(0, 13));
+  for (const id of listaId) {
+    const s = {};
+    let almenoUno = false;
+    for (const v of variabili) {
+      const col = h[v + '_' + id];
+      if (!col) continue;
+      const m = new Map();
+      for (let i = 0; i < fuori.ore.length; i++) {
+        const x = num(col[i]);
+        if (x !== null) { m.set(fuori.ore[i], x); almenoUno = true; }
+      }
+      s[v] = m;
+    }
+    if (almenoUno) fuori.serie[id] = s;
+  }
+  return fuori;
+}
+
+function leggiEnsemble(risposta) {
+  const h = risposta && risposta.hourly;
+  const sistemi = {};
+  if (!h || !h.time) return { ore: [], sistemi };
+  const ore = h.time.map(t => t.slice(0, 13));
+  for (const chiave of Object.keys(h)) {
+    if (chiave === 'time') continue;
+    // le colonne arrivano come temperature_2m_member07_icon_eu_eps, con il membro in mezzo
+    const m = chiave.match(/^(temperature_2m|precipitation)_(?:member(\d+)_)?(.+)$/);
+    if (!m) continue;
+    const variabile = m[1], membro = m[2] ? +m[2] : 0, sistema = m[3];
+    sistemi[sistema] = sistemi[sistema] || { nome: sistema, membri: new Map() };
+    const mm = sistemi[sistema].membri;
+    if (!mm.has(membro)) mm.set(membro, { temperature_2m: new Map(), precipitation: new Map() });
+    const dest = mm.get(membro)[variabile];
+    const col = h[chiave];
+    for (let i = 0; i < ore.length; i++) { const x = num(col[i]); if (x !== null) dest.set(ore[i], x); }
+  }
+  return { ore, sistemi };
+}
+
+/* ---------------- osservazioni ARPA ---------------- */
+
+function aggregaArpa(righe) {
+  const per = {};                                  // idsensore -> Map(chiaveOra -> [valori])
+  for (const r of righe) {
+    const v = parseFloat(r.valore);
+    if (!isFinite(v) || v <= -900) continue;
+    if (r.stato && r.stato !== 'VA') continue;
+    const k = chiaveOra(new Date(r.data.length > 19 ? r.data + 'Z' : r.data + '.000Z'));
+    per[r.idsensore] = per[r.idsensore] || new Map();
+    const m = per[r.idsensore];
+    if (!m.has(k)) m.set(k, []);
+    m.get(k).push(v);
+  }
+  return per;
+}
+
+function serieOsservate(per) {
+  const out = { temp: new Map(), pioggia: new Map(), umidita: new Map(), vento: new Map(), perStazione: {} };
+  const tempSt = STAZIONI.filter(s => s.tipo === 'temp');
+  const pioSt  = STAZIONI.filter(s => s.tipo === 'pioggia');
+
+  // temperatura: media pesata per vicinanza, riportata a 262 m con gradiente 6.5 gradi al km
+  const chiaviT = new Set();
+  tempSt.forEach(s => (per[s.id] || new Map()).forEach((_, k) => chiaviT.add(k)));
+  for (const k of chiaviT) {
+    const coppie = [];
+    for (const s of tempSt) {
+      const vals = (per[s.id] || new Map()).get(k);
+      if (!vals || !vals.length) continue;
+      const t = media(vals) + (s.quota - SITO.quota) * 0.0065;
+      coppie.push([t, 1 / Math.pow(s.km, 1.4)]);
+    }
+    const v = mediaPesata(coppie);
+    if (v !== null) out.temp.set(k, v);
+  }
+
+  // pioggia: media pesata dei pluviometri, e scarto fra pluviometri come misura di quanto è disomogenea
+  const chiaviP = new Set();
+  pioSt.forEach(s => (per[s.id] || new Map()).forEach((_, k) => chiaviP.add(k)));
+  for (const k of chiaviP) {
+    const coppie = [], grezzi = [];
+    for (const s of pioSt) {
+      const vals = (per[s.id] || new Map()).get(k);
+      if (!vals || !vals.length) continue;
+      const mm = somma(vals);
+      grezzi.push({ nome: s.nome, mm });
+      coppie.push([mm, 1 / Math.pow(s.km, 1.4)]);
+    }
+    const v = mediaPesata(coppie);
+    if (v !== null) { out.pioggia.set(k, v); out.perStazione[k] = grezzi; }
+  }
+
+  for (const [tipo, chiave] of [['umidita', 'umidita'], ['vento', 'vento']]) {
+    const st = STAZIONI.filter(s => s.tipo === tipo);
+    for (const s of st) {
+      (per[s.id] || new Map()).forEach((vals, k) => { if (!out[chiave].has(k)) out[chiave].set(k, media(vals)); });
+    }
+  }
+  return out;
+}
+
+/* verifica che i timbri ARPA e quelli dei modelli siano allineati:
+   cerca lo sfasamento che minimizza lo scarto, entro un'ora */
+function controllaAllineamento(oss, analisi) {
+  const prova = s => {
+    const d = [];
+    oss.forEach((v, k) => {
+      const a = analisi.get(chiaveDa(k, s));
+      if (a !== undefined) d.push(Math.abs(v - a));
+    });
+    return d.length >= 24 ? { s, mae: media(d), n: d.length } : null;
+  };
+  const esiti = [-1, 0, 1].map(prova).filter(Boolean);
+  if (esiti.length < 2) return { scarto: 0, sicuro: false };
+  esiti.sort((a, b) => a.mae - b.mae);
+  const zero = esiti.find(e => e.s === 0);
+  if (esiti[0].s !== 0 && zero && (zero.mae - esiti[0].mae) > 0.25) {
+    return { scarto: esiti[0].s, sicuro: true, mae: esiti[0].mae };
+  }
+  return { scarto: 0, sicuro: true, mae: zero ? zero.mae : esiti[0].mae };
+}
+
+function spostaSerie(m, ore) {
+  if (!ore) return m;
+  const n = new Map();
+  m.forEach((v, k) => n.set(chiaveDa(k, ore), v));
+  return n;
+}
+
+/* ---------------- regimi e correzioni ---------------- */
+
+function regimeDi(k, nuvole) {
+  const ora = +k.slice(11, 13);
+  const notte = (ora >= 21 || ora < 7);
+  const coperto = (nuvole === null || nuvole === undefined) ? true : nuvole >= 55;
+  return (notte ? 'notte' : 'giorno') + '-' + (coperto ? 'coperto' : 'sereno');
+}
+
+function smorza(valore, n, globale, k = 24) {
+  if (n <= 0) return globale;
+  return (n * valore + k * globale) / (n + k);
+}
+
+/* ---------------- pagella dei modelli ---------------- */
+/* Per ogni modello si recupera cosa aveva previsto 24, 48 e 72 ore prima
+   e lo si confronta con le misure corrette al punto di Pedrengo.        */
+
+function calcolaPagella(precedenti, oss, nuvoleRif) {
+  const esito = {};
+  const leads = [24, 48, 72];
+
+  for (const m of MODELLI) {
+    const s = precedenti.serie[m.id];
+    if (!s) continue;
+    const voce = { id: m.id, per: {}, regimi: {}, campioni: 0 };
+
+    for (const lead of leads) {
+      const suff = lead === 24 ? '_previous_day1' : lead === 48 ? '_previous_day2' : '_previous_day3';
+      const serieT = s['temperature_2m' + suff];
+      const serieP = s['precipitation' + suff];
+      if (!serieT && !serieP) continue;
+
+      const dT = [], scarti = [];
+      const perRegime = {};
+      let colpiti = 0, mancati = 0, falsi = 0, corretti = 0, totP = 0;
+      const dP = [];
+
+      if (serieT) {
+        serieT.forEach((prev, k) => {
+          const vero = oss.temp.get(k);
+          if (vero === undefined) return;
+          const e = prev - vero;
+          dT.push(Math.abs(e)); scarti.push(e);
+          const reg = regimeDi(k, nuvoleRif.get(k));
+          (perRegime[reg] = perRegime[reg] || []).push(e);
+        });
+      }
+      if (serieP) {
+        serieP.forEach((prev, k) => {
+          const vero = oss.pioggia.get(k);
+          if (vero === undefined) return;
+          totP++;
+          dP.push(Math.abs(prev - vero));
+          const pPrev = prev >= 0.1, pVero = vero >= SOGLIA_PIOGGIA;
+          if (pPrev && pVero) colpiti++;
+          else if (!pPrev && pVero) mancati++;
+          else if (pPrev && !pVero) falsi++;
+          else corretti++;
+        });
+      }
+
+      if (dT.length >= 12 || totP >= 12) {
+        voce.per[lead] = {
+          mae: dT.length ? media(dT) : null,
+          scarto: scarti.length ? media(scarti) : null,
+          n: dT.length,
+          maeMm: dP.length ? media(dP) : null,
+          pod: (colpiti + mancati) > 0 ? colpiti / (colpiti + mancati) : null,
+          far: (colpiti + falsi) > 0 ? falsi / (colpiti + falsi) : null,
+          esatte: totP > 0 ? (colpiti + corretti) / totP : null,
+          nP: totP
+        };
+        voce.campioni += dT.length;
+        if (lead === 24) {
+          for (const r of Object.keys(perRegime)) {
+            voce.regimi[r] = { scarto: media(perRegime[r]), n: perRegime[r].length };
+          }
+        }
+      }
+    }
+    if (Object.keys(voce.per).length) esito[m.id] = voce;
+  }
+  return esito;
+}
+
+function maeInterpolato(voce, lead) {
+  if (!voce) return null;
+  const punti = [[24, voce.per[24]], [48, voce.per[48]], [72, voce.per[72]]]
+    .filter(p => p[1] && p[1].mae !== null);
+  if (!punti.length) return null;
+  if (lead <= punti[0][0]) return punti[0][1].mae * (lead < 24 ? 0.72 + 0.28 * (lead / 24) : 1);
+  for (let i = 0; i < punti.length - 1; i++) {
+    if (lead <= punti[i + 1][0]) {
+      const t = (lead - punti[i][0]) / (punti[i + 1][0] - punti[i][0]);
+      return punti[i][1].mae + (punti[i + 1][1].mae - punti[i][1].mae) * t;
+    }
+  }
+  const ult = punti[punti.length - 1];
+  return ult[1].mae * (1 + 0.16 * (lead - ult[0]) / 24);
+}
+
+/* peso di ogni famiglia per un certo anticipo: chi sbaglia poco pesa di più */
+function pesiFamiglia(pagella, lead, disponibili) {
+  const perFam = {};
+  for (const id of disponibili) {
+    const m = PER_ID[id]; if (!m) continue;
+    const mae = maeInterpolato(pagella[id], lead);
+    (perFam[m.fam] = perFam[m.fam] || []).push({ id, mae });
+  }
+  const grezzi = {};
+  const noti = Object.values(perFam).flat().map(x => x.mae).filter(x => x !== null);
+  const riferimento = noti.length ? media(noti) : 1.6;
+  for (const f of Object.keys(perFam)) {
+    const maes = perFam[f].map(x => x.mae === null ? riferimento : x.mae);
+    const mm = media(maes);
+    grezzi[f] = 1 / Math.pow(Math.max(0.35, mm) + 0.45, 2);
+  }
+  let tot = somma(Object.values(grezzi));
+  let pesi = {};
+  for (const f of Object.keys(grezzi)) pesi[f] = grezzi[f] / tot;
+  // nessuna famiglia può dominare né sparire del tutto
+  const nf = Object.keys(pesi).length;
+  const tetto = Math.max(0.22, 1.8 / nf), pavimento = 0.25 / nf;
+  for (const f of Object.keys(pesi)) pesi[f] = chiudi(pesi[f], pavimento, tetto);
+  tot = somma(Object.values(pesi));
+  for (const f of Object.keys(pesi)) pesi[f] /= tot;
+  return { pesi, membri: perFam, riferimento };
+}
+
+/* ---------------- curva di affidabilità della pioggia ---------------- */
+/* Quante volte, quando N modelli su M dicevano pioggia, è piovuto davvero. */
+
+function curvaAffidabilita(precedenti, oss) {
+  const bins = Array.from({ length: 11 }, (_, i) => ({ c: i / 10, n: 0, colpi: 0 }));
+  const chiavi = new Set();
+  for (const m of MODELLI) {
+    const s = precedenti.serie[m.id]; if (!s) continue;
+    const p = s['precipitation_previous_day1']; if (!p) continue;
+    p.forEach((_, k) => chiavi.add(k));
+  }
+  for (const k of chiavi) {
+    const vero = oss.pioggia.get(k);
+    if (vero === undefined) continue;
+    const perFam = {};
+    for (const m of MODELLI) {
+      const s = precedenti.serie[m.id]; if (!s) continue;
+      const p = s['precipitation_previous_day1']; if (!p || !p.has(k)) continue;
+      (perFam[m.fam] = perFam[m.fam] || []).push(p.get(k));
+    }
+    const fams = Object.keys(perFam);
+    if (fams.length < 6) continue;
+    const bagnate = fams.filter(f => media(perFam[f]) >= 0.1).length;
+    const frazione = bagnate / fams.length;
+    const b = bins[Math.round(frazione * 10)];
+    b.n++; if (vero >= SOGLIA_PIOGGIA) b.colpi++;
+  }
+  return bins;
+}
+
+function applicaCurva(frazione, bins, forza = 8) {
+  if (!bins || !bins.length) return frazione;
+  const i = chiudi(Math.round(frazione * 10), 0, 10);
+  const b = bins[i];
+  const osservata = b.n > 0 ? b.colpi / b.n : frazione;
+  return chiudi(smorza(osservata, b.n, frazione, forza), 0, 1);
+}
+
+/* ---------------- consenso ---------------- */
+
+function costruisciConsenso(ctx) {
+  const { det, ens, pagella, oss, bins, adesso } = ctx;
+  const ore = det.ore.filter(k => k >= adesso);
+  const consenso = [];
+
+  // nuvolosità grezza, serve per decidere il regime prima di correggere
+  const nuvoleGrezze = new Map();
+  for (const k of det.ore) {
+    const v = [];
+    for (const id of Object.keys(det.serie)) {
+      const c = det.serie[id].cloud_cover; if (c && c.has(k)) v.push(c.get(k));
+    }
+    if (v.length) nuvoleGrezze.set(k, media(v));
+  }
+
+  // ancoraggio sull'adesso: quanto ogni modello sta sbagliando proprio ora
+  const ancore = {};
+  for (const id of Object.keys(det.serie)) {
+    const t = det.serie[id].temperature_2m; if (!t) continue;
+    const diff = [];
+    for (let i = 1; i <= 4; i++) {
+      const k = chiaveDa(adesso, -i);
+      const vero = oss.temp.get(k), prev = t.get(k);
+      if (vero !== undefined && prev !== undefined) diff.push(prev - vero);
+    }
+    if (diff.length >= 2) ancore[id] = media(diff);
+  }
+
+  for (const k of ore) {
+    const lead = Math.max(0, Math.round((dataDaChiave(k) - dataDaChiave(adesso)) / 3600e3));
+    const disponibili = Object.keys(det.serie).filter(id => det.serie[id].temperature_2m && det.serie[id].temperature_2m.has(k));
+    if (!disponibili.length) continue;
+    const { pesi, membri } = pesiFamiglia(pagella, lead, disponibili);
+    const reg = regimeDi(k, nuvoleGrezze.get(k));
+
+    // valore di famiglia, corretto per errore sistematico e per l'ancoraggio
+    const valoriFam = {}, pioggiaFam = {}, nuvoleFam = {}, ventoFam = {}, raficheFam = {}, umiditaFam = {}, neveFam = {}, probFam = {};
+    const dettaglio = [];
+    for (const f of Object.keys(membri)) {
+      const tt = [], pp = [], nn = [], vv = [], rr = [], uu = [], ss = [], qq = [];
+      for (const { id } of membri[f]) {
+        const s = det.serie[id]; if (!s) continue;
+        const grezza = s.temperature_2m && s.temperature_2m.has(k) ? s.temperature_2m.get(k) : null;
+        if (grezza !== null) {
+          const voce = pagella[id];
+          let corr = 0;
+          if (voce) {
+            const glob = voce.per[24] ? (voce.per[24].scarto || 0) : 0;
+            const r = voce.regimi[reg];
+            corr = r ? smorza(r.scarto, r.n, glob) : glob;
+            corr *= chiudi(0.35 + 0.65 * Math.min(1, lead / 30), 0.35, 1);
+          }
+          let ancora = 0;
+          if (ancore[id] !== undefined) {
+            const residuo = ancore[id] - corr;
+            ancora = residuo * Math.exp(-lead / 9);
+          }
+          const val = grezza - corr - ancora;
+          tt.push(val);
+          dettaglio.push({ id, fam: f, t: val, tGrezza: grezza, corr: corr + ancora });
+        }
+        const g = (v) => s[v] && s[v].has(k) ? s[v].get(k) : null;
+        const p = g('precipitation'); if (p !== null) pp.push(p);
+        const n = g('cloud_cover'); if (n !== null) nn.push(n);
+        const w = g('wind_speed_10m'); if (w !== null) vv.push(w);
+        const ra = g('wind_gusts_10m'); if (ra !== null) rr.push(ra);
+        const um = g('relative_humidity_2m'); if (um !== null) uu.push(um);
+        const ne = g('snowfall'); if (ne !== null) ss.push(ne);
+        const pr = g('precipitation_probability'); if (pr !== null) qq.push(pr);
+      }
+      if (tt.length) valoriFam[f] = media(tt);
+      if (pp.length) pioggiaFam[f] = media(pp);
+      if (nn.length) nuvoleFam[f] = media(nn);
+      if (vv.length) ventoFam[f] = media(vv);
+      if (rr.length) raficheFam[f] = media(rr);
+      if (uu.length) umiditaFam[f] = media(uu);
+      if (ss.length) neveFam[f] = media(ss);
+      if (qq.length) probFam[f] = media(qq) / 100;
+    }
+
+    const coppieT = Object.keys(valoriFam).map(f => [valoriFam[f], pesi[f] || 0]);
+    const t = medianaPesata(coppieT);
+    if (t === null) continue;
+
+    // incertezza: dispersione fra famiglie, allargata dalla dispersione dell'ensemble
+    let p10 = quantilePesato(coppieT, 0.10), p90 = quantilePesato(coppieT, 0.90);
+    const membriT = [];
+    for (const sis of Object.values(ens.sistemi || {})) {
+      sis.membri.forEach(mb => { const v = mb.temperature_2m.get(k); if (v !== undefined) membriT.push(v); });
+    }
+    if (membriT.length > 10) {
+      membriT.sort((a, b) => a - b);
+      const q = (x) => membriT[Math.min(membriT.length - 1, Math.floor(x * membriT.length))];
+      const ampiezzaEns = q(0.9) - q(0.1);
+      const ampiezzaFam = (p90 - p10);
+      const ampiezza = Math.max(ampiezzaFam, ampiezzaEns * 0.85);
+      const semi = Math.max(ampiezza / 2, 0.45 + lead * 0.012);
+      p10 = t - semi; p90 = t + semi;
+    } else {
+      const semi = Math.max((p90 - p10) / 2, 0.5 + lead * 0.014);
+      p10 = t - semi; p90 = t + semi;
+    }
+
+    // probabilità di pioggia
+    const famiglieAttive = Object.keys(pioggiaFam);
+    const bagnate = famiglieAttive.filter(f => pioggiaFam[f] >= 0.1);
+    const pesoBagnato = somma(bagnate.map(f => pesi[f] || 0));
+    const pesoTot = somma(famiglieAttive.map(f => pesi[f] || 0)) || 1;
+    const frazioneDet = pesoBagnato / pesoTot;
+
+    const perSistema = [];
+    for (const sis of Object.values(ens.sistemi || {})) {
+      let tot = 0, sopra = 0;
+      sis.membri.forEach(mb => {
+        const v = mb.precipitation.get(k);
+        if (v !== undefined) { tot++; if (v >= SOGLIA_PIOGGIA) sopra++; }
+      });
+      if (tot >= 8) perSistema.push(sopra / tot);
+    }
+    const pEns = perSistema.length ? media(perSistema) : null;
+    const pDich = Object.keys(probFam).length
+      ? mediaPesata(Object.keys(probFam).map(f => [probFam[f], pesi[f] || 0])) : null;
+    const detTarato = applicaCurva(frazioneDet, bins);
+
+    let pezzi = [[detTarato, 0.34]];
+    if (pEns !== null) pezzi.push([pEns, 0.48]);
+    if (pDich !== null) pezzi.push([pDich, 0.18]);
+    const pesoP = somma(pezzi.map(p => p[1]));
+    let prob = somma(pezzi.map(p => p[0] * p[1])) / pesoP;
+    prob = chiudi(prob, 0, 1);
+
+    // quantità: valore atteso pesato, più lo scenario alto dell'ensemble
+    const mmAtteso = mediaPesata(Object.keys(pioggiaFam).map(f => [pioggiaFam[f], pesi[f] || 0])) || 0;
+    const membriP = [];
+    for (const sis of Object.values(ens.sistemi || {})) {
+      sis.membri.forEach(mb => { const v = mb.precipitation.get(k); if (v !== undefined) membriP.push(v); });
+    }
+    membriP.sort((a, b) => a - b);
+    // lo scenario alto è il novantesimo percentile dei membri, ma non può stare
+    // sotto il valore atteso dei deterministici, altrimenti si legge come un assurdo
+    const mmAlto = Math.max(
+      membriP.length ? membriP[Math.floor(0.9 * (membriP.length - 1))] : mmAtteso * 2.2,
+      mmAtteso * 1.35
+    );
+
+    const nuvole = mediaPesata(Object.keys(nuvoleFam).map(f => [nuvoleFam[f], pesi[f] || 0]));
+    const vento = mediaPesata(Object.keys(ventoFam).map(f => [ventoFam[f], pesi[f] || 0]));
+    const raffiche = mediaPesata(Object.keys(raficheFam).map(f => [raficheFam[f], pesi[f] || 0]));
+    const umidita = mediaPesata(Object.keys(umiditaFam).map(f => [umiditaFam[f], pesi[f] || 0]));
+    const neve = mediaPesata(Object.keys(neveFam).map(f => [neveFam[f], pesi[f] || 0])) || 0;
+
+    consenso.push({
+      k, lead, t, p10, p90,
+      prob, mm: mmAtteso, mmAlto,
+      nuvole, vento, raffiche, umidita, neve,
+      frazioneDet, pEns, nFamiglie: famiglieAttive.length,
+      bagnate, asciutte: famiglieAttive.filter(f => pioggiaFam[f] < 0.1),
+      dettaglio, pesi, regime: reg,
+      accordoPioggia: 1 - Math.min(1, 2 * Math.min(frazioneDet, 1 - frazioneDet)),
+      incertezzaT: p90 - p10,
+      cape: ctx.cape && ctx.cape.get(k) !== undefined ? ctx.cape.get(k) : null
+    });
+  }
+  return consenso;
+}
+
+/* ---------------- aggregazione giornaliera ---------------- */
+
+function aggregaGiorni(consenso, ens, oggi) {
+  const perGiorno = {};
+  for (const c of consenso) {
+    const g = c.k.slice(0, 10);
+    (perGiorno[g] = perGiorno[g] || []).push(c);
+  }
+  const giorni = [];
+  for (const g of Object.keys(perGiorno).sort()) {
+    const ore = perGiorno[g];
+    if (ore.length < 6) continue;
+    const tmax = Math.max(...ore.map(o => o.t)), tmin = Math.min(...ore.map(o => o.t));
+    const oraMax = ore.find(o => o.t === tmax), oraMin = ore.find(o => o.t === tmin);
+
+    // probabilità giornaliera calcolata sui totali dei singoli membri, non sommando le ore
+    const perSistema = [], totaliMembri = [];
+    for (const sis of Object.values(ens.sistemi || {})) {
+      let tot = 0, sopra = 0;
+      sis.membri.forEach(mb => {
+        let acc = 0, visto = false;
+        for (const o of ore) { const v = mb.precipitation.get(o.k); if (v !== undefined) { acc += v; visto = true; } }
+        if (visto) { tot++; totaliMembri.push(acc); if (acc >= 1.0) sopra++; }
+      });
+      if (tot >= 8) perSistema.push(sopra / tot);
+    }
+    const probGiorno = perSistema.length ? media(perSistema) : Math.max(...ore.map(o => o.prob));
+    const mm = somma(ore.map(o => o.mm));
+    totaliMembri.sort((a, b) => a - b);
+    const mmAlto = Math.max(
+      totaliMembri.length >= 10
+        ? totaliMembri[Math.floor(0.9 * (totaliMembri.length - 1))]
+        : somma(ore.map(o => o.mmAlto)) * 0.62,
+      mm * 1.25
+    );
+    const finestre = finestrePioggia(ore);
+
+    const incertezza = media(ore.map(o => o.incertezzaT));
+    const accordo = media(ore.filter(o => o.prob > 0.12 || o.mm > 0.05).map(o => o.accordoPioggia));
+    const lead = ore[0].lead;
+    let fiducia;
+    const punteggio = (accordo === null ? 0.8 : accordo) * 0.5
+                    + chiudi(1 - (incertezza - 1.2) / 5.5, 0, 1) * 0.3
+                    + chiudi(1 - lead / 170, 0, 1) * 0.2;
+    fiducia = punteggio > 0.72 ? 'alta' : punteggio > 0.52 ? 'media' : 'bassa';
+
+    giorni.push({
+      data: g, ore, tmax, tmin, oraMax: oraMax ? oraMax.k : null, oraMin: oraMin ? oraMin.k : null,
+      tmaxP10: oraMax ? oraMax.p10 : tmax, tmaxP90: oraMax ? oraMax.p90 : tmax,
+      tminP10: oraMin ? oraMin.p10 : tmin, tminP90: oraMin ? oraMin.p90 : tmin,
+      prob: probGiorno, mm, mmAlto, finestre, incertezza, fiducia, punteggio, lead,
+      nuvoleMedie: media(ore.map(o => o.nuvole).filter(x => x !== null)),
+      ventoMax: Math.max(...ore.map(o => o.raffiche || 0)),
+      neve: somma(ore.map(o => o.neve || 0)),
+      capeMax: Math.max(...ore.map(o => o.cape || 0)),
+      parziale: ore.length < 20
+    });
+  }
+  return giorni;
+}
+
+function finestrePioggia(ore, soglia = 0.35) {
+  const f = [];
+  let apertura = null;
+  for (const o of ore) {
+    const piove = o.prob >= soglia || o.mm >= 0.25;
+    if (piove && !apertura) apertura = { da: o.k, a: o.k, probMax: o.prob, mm: o.mm };
+    else if (piove && apertura) { apertura.a = o.k; apertura.probMax = Math.max(apertura.probMax, o.prob); apertura.mm += o.mm; }
+    else if (!piove && apertura) { f.push(apertura); apertura = null; }
+  }
+  if (apertura) f.push(apertura);
+  return f.filter(x => x.probMax >= soglia);
+}
+
+/* ---------------- ricostruzione delle previsioni passate ---------------- */
+/* Consenso a 24 ore di anticipo, a pesi uguali fra famiglie per non barare,
+   confrontato con le misure e con i singoli modelli.                      */
+
+function verificaStorica(precedenti, oss) {
+  const perGiorno = {};
+  const chiavi = new Set();
+  for (const m of MODELLI) {
+    const s = precedenti.serie[m.id]; if (!s) continue;
+    const t = s['temperature_2m_previous_day1']; if (!t) continue;
+    t.forEach((_, k) => chiavi.add(k));
+  }
+  for (const k of [...chiavi].sort()) {
+    const vero = oss.temp.get(k);
+    const veraP = oss.pioggia.get(k);
+    if (vero === undefined) continue;
+    const perFam = {}, perFamP = {};
+    for (const m of MODELLI) {
+      const s = precedenti.serie[m.id]; if (!s) continue;
+      const t = s['temperature_2m_previous_day1'], p = s['precipitation_previous_day1'];
+      if (t && t.has(k)) (perFam[m.fam] = perFam[m.fam] || []).push({ id: m.id, v: t.get(k) });
+      if (p && p.has(k)) (perFamP[m.fam] = perFamP[m.fam] || []).push({ id: m.id, v: p.get(k) });
+    }
+    const fams = Object.keys(perFam);
+    if (fams.length < 6) continue;
+    const valori = fams.map(f => media(perFam[f].map(x => x.v))).sort((a, b) => a - b);
+    const cons = valori.length % 2 ? valori[(valori.length - 1) / 2]
+                                   : (valori[valori.length / 2 - 1] + valori[valori.length / 2]) / 2;
+    const g = k.slice(0, 10);
+    perGiorno[g] = perGiorno[g] || { data: g, ore: [] };
+    const famsP = Object.keys(perFamP);
+    const bagnate = famsP.filter(f => media(perFamP[f].map(x => x.v)) >= 0.1).length;
+    perGiorno[g].ore.push({
+      k, cons, vero,
+      prevP: famsP.length ? media(famsP.map(f => media(perFamP[f].map(x => x.v)))) : null,
+      fraz: famsP.length ? bagnate / famsP.length : null,
+      veraP: veraP === undefined ? null : veraP,
+      singoli: Object.values(perFam).flat()
+    });
+  }
+
+  const righe = [];
+  for (const g of Object.keys(perGiorno).sort()) {
+    const ore = perGiorno[g].ore;
+    if (ore.length < 18) continue;
+    const tmaxPrev = Math.max(...ore.map(o => o.cons)), tmaxVero = Math.max(...ore.map(o => o.vero));
+    const tminPrev = Math.min(...ore.map(o => o.cons)), tminVero = Math.min(...ore.map(o => o.vero));
+    const maeCons = media(ore.map(o => Math.abs(o.cons - o.vero)));
+    const perModello = {};
+    for (const o of ore) for (const s of o.singoli) {
+      (perModello[s.id] = perModello[s.id] || []).push(Math.abs(s.v - o.vero));
+    }
+    const maeSingoli = Object.entries(perModello)
+      .filter(([, v]) => v.length >= ore.length * 0.7)
+      .map(([id, v]) => ({ id, mae: media(v) }))
+      .sort((a, b) => a.mae - b.mae);
+    const mmPrev = somma(ore.map(o => o.prevP || 0));
+    const mmVero = somma(ore.map(o => o.veraP || 0));
+    righe.push({
+      data: g, tmaxPrev, tmaxVero, tminPrev, tminVero, maeCons,
+      migliore: maeSingoli[0] || null,
+      mediano: maeSingoli.length ? maeSingoli[Math.floor(maeSingoli.length / 2)] : null,
+      peggiore: maeSingoli[maeSingoli.length - 1] || null,
+      mmPrev, mmVero, ore: ore.length,
+      battuti: maeSingoli.filter(s => s.mae > maeCons).length,
+      totali: maeSingoli.length
+    });
+  }
+  return righe;
+}
+
+/* ============================================================
+   PedrengoMeteo - interfaccia
+   ============================================================ */
+
+const $ = s => document.querySelector(s);
+const STATO = { consenso: [], giorni: [], pagella: {}, verifica: [], oss: null, det: null, ens: null,
+                bins: null, offsetSito: null, ventaglio: { variabile: 'temperatura', finestra: 48 }, tempi: {} };
+
+const g1 = n => (n === null || n === undefined || !isFinite(n)) ? '-' : n.toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const g0 = n => (n === null || n === undefined || !isFinite(n)) ? '-' : Math.round(n).toLocaleString('it-IT');
+const pc = n => (n === null || n === undefined || !isFinite(n)) ? '-' : Math.round(n * 100) + '%';
+const oraDi = k => k.slice(11, 13) + ':00';
+const GIORNI_NOME = ['domenica', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato'];
+const MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
+
+function nomeGiorno(dataStr, oggi) {
+  const d = dataDaChiave(dataStr + 'T12');
+  const diff = Math.round((dataDaChiave(dataStr + 'T12') - dataDaChiave(oggi + 'T12')) / 86400e3);
+  if (diff === 0) return 'oggi';
+  if (diff === 1) return 'domani';
+  if (diff === 2) return 'dopodomani';
+  return GIORNI_NOME[d.getDay()];
+}
+function dataBreve(dataStr) {
+  const d = dataDaChiave(dataStr + 'T12');
+  return d.getDate() + ' ' + MESI[d.getMonth()].slice(0, 3);
+}
+
+/* ---------------- simboli ---------------- */
+
+function icona(tipo, dim = 22) {
+  const c = 'stroke="currentColor" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"';
+  const nuvola = `<path d="M7 18h9.2a3.4 3.4 0 0 0 .3-6.8 5 5 0 0 0-9.5-1.1A3.5 3.5 0 0 0 7 18z" ${c}/>`;
+  const sole = (cx, cy, r) => `<circle cx="${cx}" cy="${cy}" r="${r}" ${c}/>` +
+    [0, 45, 90, 135, 180, 225, 270, 315].map(a => {
+      const rad = a * Math.PI / 180;
+      return `<line x1="${(cx + Math.cos(rad) * (r + 2)).toFixed(1)}" y1="${(cy + Math.sin(rad) * (r + 2)).toFixed(1)}" x2="${(cx + Math.cos(rad) * (r + 4)).toFixed(1)}" y2="${(cy + Math.sin(rad) * (r + 4)).toFixed(1)}" ${c}/>`;
+    }).join('');
+  const luna = `<path d="M17 14.6A6.4 6.4 0 0 1 9.4 7a6.4 6.4 0 1 0 7.6 7.6z" ${c}/>`;
+  const gocce = n => Array.from({ length: n }, (_, i) =>
+    `<line x1="${8.5 + i * 3.6}" y1="19.4" x2="${7.3 + i * 3.6}" y2="22.4" ${c}/>`).join('');
+  const fiocchi = n => Array.from({ length: n }, (_, i) =>
+    `<g transform="translate(${8.6 + i * 3.6} 21)"><line x1="-1.6" y1="0" x2="1.6" y2="0" ${c}/><line x1="0" y1="-1.6" x2="0" y2="1.6" ${c}/></g>`).join('');
+  const fulmine = `<path d="M13.6 17.6h2.6l-4.4 5.6 1-3.8H10.4l3.4-5.2z" ${c}/>`;
+  let corpo;
+  switch (tipo) {
+    case 'sereno':    corpo = sole(12, 12, 4.4); break;
+    case 'notte':     corpo = luna; break;
+    case 'poco':      corpo = sole(9, 8.5, 3.2) + nuvola; break;
+    case 'poco-notte':corpo = `<path d="M13.6 9.4A4.6 4.6 0 0 1 8.2 4a4.6 4.6 0 1 0 5.4 5.4z" ${c}/>` + nuvola; break;
+    case 'nuvoloso':  corpo = nuvola; break;
+    case 'coperto':   corpo = `<path d="M4.6 14.4a2.9 2.9 0 0 1 1.9-5 4.3 4.3 0 0 1 7.6-1.4" ${c}/>` + nuvola; break;
+    case 'debole':    corpo = nuvola + gocce(2); break;
+    case 'pioggia':   corpo = nuvola + gocce(3); break;
+    case 'rovesci':   corpo = nuvola + gocce(4); break;
+    case 'temporale': corpo = nuvola + fulmine; break;
+    case 'neve':      corpo = nuvola + fiocchi(3); break;
+    case 'nebbia':    corpo = `<line x1="4" y1="9" x2="20" y2="9" ${c}/><line x1="5.5" y1="13" x2="18.5" y2="13" ${c}/><line x1="4" y1="17" x2="20" y2="17" ${c}/>`; break;
+    default:          corpo = nuvola;
+  }
+  return `<svg viewBox="0 0 24 26" width="${dim}" height="${dim * 26 / 24}" aria-hidden="true" style="flex:none">${corpo}</svg>`;
+}
+
+function tipoTempo(o) {
+  const ora = +o.k.slice(11, 13);
+  const notte = ora >= 20 || ora < 6;
+  if (o.neve > 0.15 && o.t < 2.5) return ['neve', 'neve'];
+  if ((o.cape || 0) >= 800 && o.prob >= 0.35 && o.mm >= 0.4) return ['temporale', 'temporali'];
+  if (o.mm >= 2.5) return ['rovesci', 'rovesci'];
+  if (o.mm >= 0.6) return ['pioggia', 'pioggia'];
+  if (o.mm >= 0.12 || o.prob >= 0.45) return ['debole', 'pioggia debole'];
+  if (o.umidita >= 96 && (o.nuvole || 0) < 45 && (o.vento || 0) < 7 && (ora < 10 || ora >= 21)) return ['nebbia', 'nebbia'];
+  const n = o.nuvole === null ? 50 : o.nuvole;
+  if (n < 22) return [notte ? 'notte' : 'sereno', 'sereno'];
+  if (n < 58) return [notte ? 'poco-notte' : 'poco', 'poco nuvoloso'];
+  if (n < 85) return ['nuvoloso', 'nuvoloso'];
+  return ['coperto', 'coperto'];
+}
+
+function tipoGiorno(g) {
+  const forte = g.ore.reduce((a, o) => o.mm > a.mm ? o : a, g.ore[0]);
+  if (g.mm >= 0.8 || g.prob >= 0.5) return tipoTempo({ ...forte, k: g.data + 'T13' });
+  const diurne = g.ore.filter(o => { const h = +o.k.slice(11, 13); return h >= 8 && h <= 19; });
+  const rif = diurne.length ? diurne : g.ore;
+  return tipoTempo({
+    k: g.data + 'T13', t: g.tmax, mm: g.mm / 24, prob: g.prob, neve: g.neve,
+    nuvole: media(rif.map(o => o.nuvole).filter(x => x !== null)),
+    umidita: media(rif.map(o => o.umidita).filter(x => x !== null)),
+    vento: media(rif.map(o => o.vento).filter(x => x !== null)), cape: g.capeMax
+  });
+}
+
+/* ---------------- stato in testa ---------------- */
+
+function stato(testo, classe) {
+  $('#stato-testo').textContent = testo;
+  const p = $('#stato-pallino');
+  p.className = 'pallino' + (classe ? ' ' + classe : '');
+}
+function passo(n) {
+  const b = $('#avanzamento').children;
+  for (let i = 0; i < b.length; i++) b[i].classList.toggle('fatto', i < n);
+}
+
+/* ---------------- adesso ---------------- */
+
+function rendiAdesso() {
+  const { oss, consenso, ultimi } = STATO;
+  const box = $('#blocco-adesso');
+  const adesso = consenso[0];
+  const kOra = chiaveOra(new Date());
+  const tOss = oss.temp.get(kOra) !== undefined ? oss.temp.get(kOra) : oss.temp.get(chiaveDa(kOra, -1));
+  const pioggiaOra = oss.pioggia.get(kOra);
+  const ultimaT = ultimi['8145'];
+  const ultimaU = ultimi['6158'];
+  const ultimoV = ultimi['19103'];
+
+  let pioggiaOggi = 0;
+  const oggi = kOra.slice(0, 10);
+  oss.pioggia.forEach((v, k) => { if (k.slice(0, 10) === oggi) pioggiaOggi += v; });
+
+  const scarto = (tOss !== undefined && adesso) ? (adesso.t - tOss) : null;
+  const [ic, testo] = adesso ? tipoTempo(adesso) : ['nuvoloso', ''];
+
+  $('#top-temp').textContent = tOss !== undefined ? g1(tOss) + ' °C' : '';
+
+  const sinistra = `
+    <div class="riquadro">
+      <div class="misura">
+        <div>
+          <div class="grossa">${tOss !== undefined ? g1(tOss) : '-'}<small> °C</small></div>
+          <div style="margin-top:8px; display:flex; align-items:center; gap:7px; color:var(--ink-2); font-size:13.5px">
+            ${icona(ic, 20)}<span>${testo}</span>
+          </div>
+        </div>
+        <div class="misura-lato">
+          <div class="riga-dato"><span>pioggia nell'ora</span><b>${pioggiaOra !== undefined ? g1(pioggiaOra) + ' mm' : '0,0 mm'}</b></div>
+          <div class="riga-dato"><span>pioggia oggi</span><b>${g1(pioggiaOggi)} mm</b></div>
+          <div class="riga-dato"><span>umidità</span><b>${ultimaU ? g0(ultimaU.v) + '%' : '-'}</b></div>
+          <div class="riga-dato"><span>vento</span><b>${ultimoV ? g1(ultimoV.v) + ' m/s' : '-'}</b></div>
+        </div>
+      </div>
+      <div class="fonte">Media pesata per distanza delle stazioni ARPA di Torre Boldone, Bergamo via Maffei e Bergamo via Goisis, riportata alla quota di Pedrengo.${ultimaT ? ' Ultima lettura delle ' + ultimaT.ora + '.' : ''}</div>
+    </div>`;
+
+  let destra;
+  if (adesso && scarto !== null) {
+    const segno = scarto > 0 ? '+' : '';
+    const giudizio = Math.abs(scarto) < 0.7 ? 'i modelli ci hanno preso'
+      : Math.abs(scarto) < 1.6 ? 'scarto contenuto'
+      : scarto > 0 ? 'i modelli stanno sovrastimando' : 'i modelli stanno sottostimando';
+    const spread = adesso.dettaglio.map(d => d.tGrezza).filter(x => x !== null);
+    const minM = Math.min(...spread), maxM = Math.max(...spread);
+    destra = `
+      <div class="riquadro">
+        <div class="riga-dato" style="border:0; padding-bottom:6px"><span>consenso per le ${oraDi(adesso.k)}</span><b>${g1(adesso.t)} °C</b></div>
+        <div class="scarto" style="margin:6px 0 12px">
+          <b style="color:${Math.abs(scarto) < 0.7 ? 'var(--ok)' : Math.abs(scarto) < 1.6 ? 'var(--attesa)' : 'var(--allerta)'}">${segno}${g1(scarto)} °C</b>
+          <span style="color:var(--ink-2); font-size:13px">${giudizio}</span>
+        </div>
+        <div class="misura-lato" style="min-width:0">
+          <div class="riga-dato"><span>modelli più freddo e più caldo</span><b>${g1(minM)} / ${g1(maxM)} °C</b></div>
+          <div class="riga-dato"><span>probabilità di pioggia ora</span><b>${pc(adesso.prob)}</b></div>
+          <div class="riga-dato"><span>modelli che danno pioggia</span><b>${adesso.bagnate.length} su ${adesso.nFamiglie}</b></div>
+          <div class="riga-dato"><span>correzione già applicata</span><b>${g1(media(adesso.dettaglio.map(d => d.corr)))} °C</b></div>
+        </div>
+        <div class="fonte">Lo scarto qui sopra è la differenza fra quello che i modelli dicevano per quest'ora e quello che le stazioni stanno misurando davvero. Viene usato per riallineare le ore successive.</div>
+      </div>`;
+  } else {
+    destra = `<div class="riquadro"><p class="vuoto">Confronto non disponibile: manca la lettura di questa ora.</p></div>`;
+  }
+  box.innerHTML = sinistra + destra;
+}
+
+/* ---------------- bollettino ---------------- */
+
+function elencoOre(f) {
+  const da = +f.da.slice(11, 13), a = +f.a.slice(11, 13);
+  if (da === a) return 'verso le ' + da;
+  return 'fra le ' + da + ' e le ' + (a + 1);
+}
+
+const TIPI_PRECIPITAZIONE = ['pioggia', 'pioggia debole', 'rovesci', 'temporali', 'neve', 'nebbia'];
+const piovoso = testo => TIPI_PRECIPITAZIONE.includes(testo) && testo !== 'nebbia';
+function fraseCielo(testo) {
+  return TIPI_PRECIPITAZIONE.includes(testo) ? testo : 'cielo ' + testo;
+}
+
+function rendiBollettino() {
+  const { giorni, consenso, pagella } = STATO;
+  if (!giorni.length) return;
+  const oggi = giorni[0], domani = giorni[1];
+  const frasi = [];
+
+  const [, testoOggi] = tipoGiorno(oggi);
+  const oraAdesso = +chiaveOra(new Date()).slice(11, 13);
+  const restaOggi = oggi.ore.filter(o => +o.k.slice(11, 13) >= oraAdesso);
+  const maxResta = restaOggi.length ? Math.max(...restaOggi.map(o => o.t)) : oggi.tmax;
+
+  frasi.push(`${oggi.parziale ? 'Per il resto di oggi' : 'Oggi'} a Pedrengo ${fraseCielo(testoOggi)}, massima ${g1(maxResta)} gradi e minima ${g1(oggi.tmin)}, con un margine di ${g1(oggi.incertezza / 2)} gradi in più o in meno.`);
+
+  const finestreOggi = oggi.finestre.filter(f => +f.a.slice(11, 13) >= oraAdesso);
+  if (finestreOggi.length) {
+    const f = finestreOggi[0];
+    const oraPicco = oggi.ore.find(o => o.k >= f.da && o.k <= f.a && o.prob >= f.probMax - 0.01) || oggi.ore.find(o => o.k === f.da);
+    frasi.push(`Pioggia ${elencoOre(f)}, probabilità ${pc(f.probMax)}, quantità attesa ${g1(f.mm)} mm e fino a ${g1(oggi.mmAlto)} mm nello scenario più bagnato. In questo momento ${oraPicco.bagnate.length} centri su ${oraPicco.nFamiglie} vedono precipitazione in quella finestra${oraPicco.asciutte.length ? ', gli altri no' : ''}.`);
+  } else if (oggi.prob < 0.15) {
+    frasi.push(`Nessun modello vede pioggia significativa oggi: la probabilità resta sotto il ${Math.max(5, Math.round(oggi.prob * 100))} per cento per tutta la giornata.`);
+  } else {
+    frasi.push(`Pioggia poco probabile oggi, ${pc(oggi.prob)} sulla giornata, senza una finestra definita.`);
+  }
+
+  if (domani) {
+    const [, testoDom] = tipoGiorno(domani);
+    let f2 = `Domani ${fraseCielo(testoDom)}, da ${g1(domani.tmin)} a ${g1(domani.tmax)} gradi`;
+    if (domani.finestre.length) {
+      const f = domani.finestre[0];
+      f2 += piovoso(testoDom)
+        ? `, fase più intensa ${elencoOre(f)}, in tutto ${g1(domani.mm)} mm attesi e fino a ${g1(domani.mmAlto)} nello scenario alto`
+        : `, con pioggia ${elencoOre(f)} (${pc(f.probMax)}, ${g1(domani.mm)} mm attesi)`;
+    } else if (domani.prob < 0.2) f2 += ', senza pioggia in vista';
+    else f2 += `, probabilità di pioggia ${pc(domani.prob)}`;
+    frasi.push(f2 + '.');
+  }
+
+  const fragile = giorni.slice(0, 4).find(g => g.fiducia === 'bassa');
+  if (fragile) {
+    const nome = nomeGiorno(fragile.data, giorni[0].data);
+    const testa = nome === 'oggi' ? 'Attenzione, oggi' : `Attenzione a ${nome}:`;
+    frasi.push(`${testa} i modelli si dividono, la dispersione sulla temperatura è di ${g1(fragile.incertezza)} gradi e sulla pioggia non c'è accordo. Quella previsione va presa con cautela e riguardata al prossimo aggiornamento.`);
+  }
+
+  const ventoso = giorni.slice(0, 4).find(g => g.ventoMax >= 45);
+  if (ventoso) frasi.push(`Raffiche fino a ${g0(ventoso.ventoMax)} km/h ${nomeGiorno(ventoso.data, giorni[0].data)}.`);
+
+  const temporali = giorni.slice(0, 5).find(g => g.capeMax >= 900 && g.prob >= 0.3);
+  if (temporali && !fragile) frasi.push(`Energia convettiva alta ${nomeGiorno(temporali.data, giorni[0].data)} (${g0(temporali.capeMax)} J/kg): se piove, piove a rovesci e in modo disuguale fra una via e l'altra.`);
+
+  const lontani = giorni.slice(4);
+  if (lontani.length) {
+    const tm = media(lontani.map(g => g.tmax));
+    const vicini = media(giorni.slice(0, 3).map(g => g.tmax));
+    const verso = tm - vicini;
+    frasi.push(`Da ${nomeGiorno(lontani[0].data, giorni[0].data)} in poi le massime ${Math.abs(verso) < 1 ? 'restano sui ' + g1(tm) + ' gradi' : (verso > 0 ? 'salgono verso i ' + g1(tm) : 'scendono verso i ' + g1(tm)) + ' gradi'}, ma oltre il quinto giorno l'errore medio dei modelli qui supera i ${g1(Math.max(1.5, media(Object.values(pagella).map(v => v.per[72] ? v.per[72].mae : null).filter(Boolean)) * 1.25))} gradi: è una tendenza, non una previsione.`);
+  }
+
+  $('#bollettino').innerHTML = frasi.map(f => `<p>${f}</p>`).join('');
+  const nMod = Object.keys(STATO.det.serie).length;
+  const nVer = somma(Object.values(pagella).map(v => v.campioni));
+  $('#firma-bollettino').textContent = `Scritto dai numeri di ${nMod} modelli, pesati su ${g0(nVer)} confronti con le stazioni. Aggiornato alle ${new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit' }).format(new Date())}.`;
+}
+
+/* ---------------- grafico 48 ore ---------------- */
+
+function disegnaOre() {
+  const box = $('#tela-ore');
+  const W = Math.max(300, Math.floor(box.clientWidth) - 16);
+  const stretto = W < 560;
+  const n = Math.min(STATO.consenso.length, stretto ? 24 : 48);
+  const dati = STATO.consenso.slice(0, n);
+  if (!dati.length) return;
+
+  const ML = 32, MR = 8, MT = 16;
+  const HT = stretto ? 108 : 132, GAP = 30, HP = stretto ? 52 : 62, HX = 22;
+  const H = MT + HT + GAP + HP + HX;
+  const larg = (W - ML - MR) / n;
+  const x = i => ML + (i + 0.5) * larg;
+
+  const tutti = dati.flatMap(d => [d.p10, d.p90]);
+  let tMin = Math.min(...tutti), tMax = Math.max(...tutti);
+  const pad = Math.max(0.8, (tMax - tMin) * 0.12);
+  tMin = Math.floor(tMin - pad); tMax = Math.ceil(tMax + pad);
+  const y = v => MT + HT - ((v - tMin) / (tMax - tMin)) * HT;
+  const yP = p => MT + HT + GAP + HP - p * HP;
+
+  let s = '';
+
+  // notte
+  let inizio = null;
+  dati.forEach((d, i) => {
+    const h = +d.k.slice(11, 13), notte = h >= 20 || h < 6;
+    if (notte && inizio === null) inizio = i;
+    if ((!notte || i === dati.length - 1) && inizio !== null) {
+      const a = ML + inizio * larg, b = ML + (notte ? i + 1 : i) * larg;
+      s += `<rect class="notte" x="${a.toFixed(1)}" y="${MT}" width="${(b - a).toFixed(1)}" height="${HT}"/>`;
+      inizio = null;
+    }
+  });
+
+  // griglia temperatura
+  const passoT = (tMax - tMin) > 16 ? 5 : (tMax - tMin) > 8 ? 2 : 1;
+  for (let v = Math.ceil(tMin / passoT) * passoT; v <= tMax; v += passoT) {
+    s += `<line class="gx-lieve" x1="${ML}" y1="${y(v).toFixed(1)}" x2="${W - MR}" y2="${y(v).toFixed(1)}"/>`;
+    s += `<text class="et-asse" x="${ML - 6}" y="${(y(v) + 3.5).toFixed(1)}" text-anchor="end">${v}</text>`;
+  }
+
+  // fascia di incertezza e linea
+  const su = dati.map((d, i) => `${x(i).toFixed(1)},${y(d.p90).toFixed(1)}`);
+  const giu = dati.map((d, i) => `${x(i).toFixed(1)},${y(d.p10).toFixed(1)}`).reverse();
+  s += `<polygon class="fascia-t" points="${su.concat(giu).join(' ')}"/>`;
+  s += `<polyline class="linea-t" points="${dati.map((d, i) => `${x(i).toFixed(1)},${y(d.t).toFixed(1)}`).join(' ')}"/>`;
+
+  // estremi etichettati
+  const iMax = dati.reduce((a, d, i) => d.t > dati[a].t ? i : a, 0);
+  const iMin = dati.reduce((a, d, i) => d.t < dati[a].t ? i : a, 0);
+  for (const i of [iMax, iMin]) {
+    s += `<circle class="punto-t" cx="${x(i).toFixed(1)}" cy="${y(dati[i].t).toFixed(1)}" r="3.4"/>`;
+    s += `<text class="et-mm" style="fill:var(--arancio)" x="${x(i).toFixed(1)}" y="${(y(dati[i].t) + (i === iMax ? -8 : 15)).toFixed(1)}" text-anchor="middle">${g1(dati[i].t)}</text>`;
+  }
+
+  // pannello pioggia
+  s += `<line class="zero" x1="${ML}" y1="${yP(0)}" x2="${W - MR}" y2="${yP(0)}"/>`;
+  for (const p of [0.5, 1]) {
+    s += `<line class="gx-lieve" x1="${ML}" y1="${yP(p).toFixed(1)}" x2="${W - MR}" y2="${yP(p).toFixed(1)}"/>`;
+    s += `<text class="et-asse" x="${ML - 6}" y="${(yP(p) + 3.5).toFixed(1)}" text-anchor="end">${p * 100}</text>`;
+  }
+  let ultimaEt = -9;
+  dati.forEach((d, i) => {
+    const h = Math.max(d.prob > 0.02 ? 1.5 : 0, d.prob * HP);
+    if (h > 0) s += `<rect class="barra-p" x="${(x(i) - larg * 0.34).toFixed(1)}" y="${(yP(d.prob)).toFixed(1)}" width="${(larg * 0.68).toFixed(1)}" height="${h.toFixed(1)}" rx="1.5"/>`;
+    if (d.mm >= 0.3 && i - ultimaEt >= (stretto ? 4 : 3)) {
+      s += `<text class="et-mm" x="${x(i).toFixed(1)}" y="${(yP(d.prob) - 4).toFixed(1)}" text-anchor="middle">${g1(d.mm)}</text>`;
+      ultimaEt = i;
+    }
+  });
+
+  // asse orario e separatori di giorno
+  const ogni = stretto ? 6 : 3;
+  dati.forEach((d, i) => {
+    const h = +d.k.slice(11, 13);
+    if (h === 0 && i > 0) {
+      const px = (ML + i * larg).toFixed(1);
+      s += `<line class="gx" x1="${px}" y1="${MT}" x2="${px}" y2="${MT + HT + GAP + HP}"/>`;
+      s += `<text class="et-giorno" x="${(+px + 5).toFixed(1)}" y="${MT + 11}">${nomeGiorno(d.k.slice(0, 10), dati[0].k.slice(0, 10)).slice(0, 3)}</text>`;
+    }
+    if (h % ogni === 0) s += `<text class="et-asse" x="${x(i).toFixed(1)}" y="${H - 6}" text-anchor="middle">${String(h).padStart(2, '0')}</text>`;
+  });
+
+  s += `<rect id="cattura-ore" x="${ML}" y="${MT}" width="${W - ML - MR}" height="${HT + GAP + HP}" fill="transparent" style="cursor:crosshair"/>`;
+  s += `<line id="mirino-ore" class="mirino" x1="0" y1="${MT}" x2="0" y2="${MT + HT + GAP + HP}" style="opacity:0"/>`;
+
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Temperatura e probabilità di pioggia ora per ora">${s}</svg>
+    <div class="suggerimento" id="sug-ore"></div>`;
+  $('#legenda-ore').hidden = false;
+
+  const svg = box.querySelector('svg'), sug = $('#sug-ore'), mirino = $('#mirino-ore');
+  const indiceDa = ev => {
+    const r = svg.getBoundingClientRect();
+    const px = (ev.clientX - r.left) * (W / r.width);
+    return chiudi(Math.floor((px - ML) / larg), 0, n - 1);
+  };
+  const mostra = ev => {
+    const i = indiceDa(ev), d = dati[i];
+    const [, testo] = tipoTempo(d);
+    mirino.setAttribute('x1', x(i)); mirino.setAttribute('x2', x(i)); mirino.style.opacity = '1';
+    sug.innerHTML = `<h4>${nomeGiorno(d.k.slice(0, 10), dati[0].k.slice(0, 10))} ${oraDi(d.k)}</h4>
+      <div class="sug-riga"><span>temperatura</span><b>${g1(d.t)} °C</b></div>
+      <div class="sug-riga"><span>intervallo</span><b>${g1(d.p10)} / ${g1(d.p90)}</b></div>
+      <div class="sug-riga"><span>pioggia</span><b>${pc(d.prob)}</b></div>
+      ${d.mm >= 0.05 ? `<div class="sug-riga"><span>quantità</span><b>${g1(d.mm)} mm</b></div>` : ''}
+      <div class="sug-riga"><span>cielo</span><b>${testo}</b></div>
+      <div class="sug-riga"><span>vento</span><b>${g0(d.vento)} km/h</b></div>
+      <div class="sug-riga"><span>accordo</span><b>${d.bagnate.length}/${d.nFamiglie} bagnato</b></div>`;
+    sug.classList.add('on');
+    const r = svg.getBoundingClientRect(), scala = r.width / W;
+    let sx = x(i) * scala + 12;
+    if (sx + 210 > r.width) sx = x(i) * scala - 210;
+    sug.style.left = Math.max(4, sx) + 'px';
+    sug.style.top = '12px';
+  };
+  svg.addEventListener('pointermove', mostra);
+  svg.addEventListener('pointerleave', () => { sug.classList.remove('on'); mirino.style.opacity = '0'; });
+}
+
+/* ---------------- sette giorni ---------------- */
+
+function rendiGiorni() {
+  const { giorni } = STATO;
+  if (!giorni.length) { $('#lista-giorni').innerHTML = '<p class="vuoto">Dati giornalieri non disponibili.</p>'; return; }
+  const tutteMin = Math.min(...giorni.map(g => g.tmin)), tutteMax = Math.max(...giorni.map(g => g.tmax));
+  const scala = v => ((v - tutteMin) / Math.max(1, tutteMax - tutteMin)) * 100;
+
+  const html = giorni.map((g, idx) => {
+    const [ic, testo] = tipoGiorno(g);
+    const a = scala(g.tmin), b = scala(g.tmax);
+    const finestre = g.finestre.length
+      ? g.finestre.map(f => elencoOre(f) + ' (' + pc(f.probMax) + ')').join(', ')
+      : 'nessuna finestra di pioggia definita';
+    const disaccordo = g.ore.filter(o => o.accordoPioggia < 0.5).length;
+    const bagnatiTipici = g.ore.reduce((a2, o) => o.prob > a2.prob ? o : a2, g.ore[0]);
+    return `
+    <button class="giorno" aria-expanded="false" data-i="${idx}">
+      <span class="g-data"><b>${nomeGiorno(g.data, giorni[0].data)}</b><span>${dataBreve(g.data)}</span></span>
+      <span class="g-simbolo">${icona(ic, 21)}<span>${testo}</span></span>
+      <span class="g-barra">
+        <span class="traccia"></span>
+        <span class="arco" style="left:${a.toFixed(1)}%; width:${Math.max(3, b - a).toFixed(1)}%"></span>
+        <span class="et" style="left:${a.toFixed(1)}%; transform:translateX(-50%); color:var(--blu)">${g1(g.tmin)}</span>
+        <span class="et" style="left:${b.toFixed(1)}%; transform:translateX(-50%); color:var(--arancio)">${g1(g.tmax)}</span>
+      </span>
+      <span class="g-pioggia">
+        <span class="mini"><i style="width:${Math.round(g.prob * 100)}%"></i></span>
+        <span>${pc(g.prob)}${g.mm >= 0.15 ? ' · ' + g1(g.mm) + ' mm' : ''}</span>
+      </span>
+      <span class="g-fiducia"><span class="chip ${g.fiducia}">fiducia ${g.fiducia}</span></span>
+    </button>
+    <div class="dettaglio" id="dett-${idx}" hidden>
+      <div class="col">
+        <div>
+          <h4>Quando</h4>
+          <p>${finestre}.${g.mm >= 0.15 ? ' Totale atteso ' + g1(g.mm) + ' mm, fino a ' + g1(g.mmAlto) + ' mm nello scenario alto.' : ''}</p>
+        </div>
+        <div>
+          <h4>Chi dice pioggia</h4>
+          <div class="elenco-mod">
+            ${bagnatiTipici.bagnate.map(f => `<span class="pill bagnato">${nomeFamiglia(f)}</span>`).join('')}
+            ${bagnatiTipici.asciutte.map(f => `<span class="pill asciutto">${nomeFamiglia(f)}</span>`).join('')}
+          </div>
+          <p style="margin-top:7px; font-size:12.5px">Nell'ora più critica (${oraDi(bagnatiTipici.k)}) ${bagnatiTipici.bagnate.length} centri su ${bagnatiTipici.nFamiglie} danno precipitazione.</p>
+        </div>
+        <div>
+          <h4>Quanto fidarsi</h4>
+          <p>Dispersione fra i modelli sulla temperatura ${g1(g.incertezza)} gradi. ${disaccordo > 0 ? disaccordo + ' ore su ' + g.ore.length + ' con disaccordo netto sulla pioggia.' : 'Accordo sostanziale sulla pioggia in tutte le ore.'} Anticipo ${Math.round(g.lead / 24 * 10) / 10} giorni.</p>
+        </div>
+        <div>
+          <h4>Altro</h4>
+          <p>Raffiche fino a ${g0(g.ventoMax)} km/h. Nuvolosità media ${g0(g.nuvoleMedie)} per cento.${g.capeMax >= 700 ? ' Energia convettiva ' + g0(g.capeMax) + ' J/kg, rischio rovesci a macchia.' : ''}${g.neve > 0.3 ? ' Neve attesa ' + g1(g.neve) + ' cm.' : ''}</p>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  $('#lista-giorni').innerHTML = `<div class="giorni">${html}</div>`;
+  $('#lista-giorni').querySelectorAll('.giorno').forEach(b => {
+    b.addEventListener('click', () => {
+      const d = $('#dett-' + b.dataset.i);
+      const aperto = b.getAttribute('aria-expanded') === 'true';
+      b.setAttribute('aria-expanded', String(!aperto));
+      d.hidden = aperto;
+    });
+  });
+}
+
+function nomeFamiglia(f) {
+  const m = MODELLI.find(x => x.fam === f);
+  if (!m) return f;
+  return m.ente.split(',')[0].replace('Stati Uniti', 'NOAA').replace('Giappone', 'JMA').replace('Paesi Bassi', 'KNMI')
+          .replace('Danimarca', 'DMI').replace('Germania', 'DWD').replace('Norvegia', 'MET').replace('Canada', 'ECCC')
+          .replace('Cina', 'CMA').replace('DWD ', '').replace('NOAA ', '').trim();
+}
+
+/* ---------------- ventaglio dei modelli ---------------- */
+
+function rendiComandiVentaglio() {
+  const c = $('#comandi-ventaglio');
+  c.innerHTML = `<span class="etich">mostra</span>
+    <button class="pulsante" data-v="temperatura">temperatura</button>
+    <button class="pulsante" data-v="pioggia">pioggia</button>
+    <span class="etich" style="margin-left:10px">finestra</span>
+    <button class="pulsante" data-f="48">48 ore</button>
+    <button class="pulsante" data-f="168">7 giorni</button>`;
+  const aggiorna = () => {
+    c.querySelectorAll('[data-v]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === STATO.ventaglio.variabile)));
+    c.querySelectorAll('[data-f]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.f === STATO.ventaglio.finestra)));
+  };
+  c.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.v) STATO.ventaglio.variabile = b.dataset.v;
+    if (b.dataset.f) STATO.ventaglio.finestra = +b.dataset.f;
+    aggiorna(); disegnaVentaglio();
+  });
+  aggiorna();
+}
+
+function disegnaVentaglio() {
+  const box = $('#tela-ventaglio');
+  const W = Math.max(300, Math.floor(box.clientWidth) - 16);
+  const stretto = W < 560;
+  const { variabile, finestra } = STATO.ventaglio;
+  const dati = STATO.consenso.slice(0, Math.min(STATO.consenso.length, finestra));
+  if (!dati.length) return;
+  const n = dati.length;
+  const ML = 34, MR = 8, MT = 14, HG = stretto ? 160 : 210, HX = 22;
+  const H = MT + HG + HX;
+  const larg = (W - ML - MR) / n;
+  const x = i => ML + (i + 0.5) * larg;
+
+  const serieMod = [];
+  for (const id of Object.keys(STATO.det.serie)) {
+    const s = STATO.det.serie[id];
+    const col = variabile === 'temperatura' ? s.temperature_2m : s.precipitation;
+    if (!col) continue;
+    const punti = dati.map(d => col.has(d.k) ? col.get(d.k) : null);
+    if (punti.filter(p => p !== null).length < n * 0.55) continue;
+    if (variabile === 'pioggia') {
+      let acc = 0;
+      serieMod.push({ id, punti: punti.map(p => (acc += (p || 0))) });
+    } else serieMod.push({ id, punti });
+  }
+  let consensoPunti;
+  if (variabile === 'pioggia') { let acc = 0; consensoPunti = dati.map(d => (acc += d.mm)); }
+  else consensoPunti = dati.map(d => d.t);
+
+  const tutti = serieMod.flatMap(s => s.punti).filter(v => v !== null).concat(consensoPunti);
+  let vMin = Math.min(...tutti), vMax = Math.max(...tutti);
+  if (variabile === 'pioggia') vMin = 0;
+  const pad = Math.max(variabile === 'pioggia' ? 0.6 : 0.6, (vMax - vMin) * 0.08);
+  vMax += pad; if (variabile === 'temperatura') vMin -= pad;
+  const y = v => MT + HG - ((v - vMin) / Math.max(0.1, vMax - vMin)) * HG;
+
+  let s = '';
+  const passoV = variabile === 'pioggia'
+    ? (vMax > 30 ? 10 : vMax > 12 ? 5 : vMax > 5 ? 2 : 1)
+    : ((vMax - vMin) > 16 ? 5 : (vMax - vMin) > 8 ? 2 : 1);
+  for (let v = Math.ceil(vMin / passoV) * passoV; v <= vMax; v += passoV) {
+    s += `<line class="gx-lieve" x1="${ML}" y1="${y(v).toFixed(1)}" x2="${W - MR}" y2="${y(v).toFixed(1)}"/>`;
+    s += `<text class="et-asse" x="${ML - 6}" y="${(y(v) + 3.5).toFixed(1)}" text-anchor="end">${v}</text>`;
+  }
+  s += `<text class="et-asse" x="${ML - 6}" y="${MT - 3}" text-anchor="end">${variabile === 'pioggia' ? 'mm' : '°C'}</text>`;
+
+  dati.forEach((d, i) => {
+    const h = +d.k.slice(11, 13);
+    if (h === 0 && i > 0) {
+      const px = (ML + i * larg).toFixed(1);
+      s += `<line class="gx" x1="${px}" y1="${MT}" x2="${px}" y2="${MT + HG}"/>`;
+      if (larg * 24 > 42) s += `<text class="et-giorno" x="${(+px + 4).toFixed(1)}" y="${H - 6}">${nomeGiorno(d.k.slice(0, 10), dati[0].k.slice(0, 10)).slice(0, 3)}</text>`;
+    }
+    if (finestra <= 48 && h % (stretto ? 6 : 3) === 0) s += `<text class="et-asse" x="${x(i).toFixed(1)}" y="${H - 6}" text-anchor="middle">${String(h).padStart(2, '0')}</text>`;
+  });
+
+  for (const sm of serieMod) {
+    const pts = sm.punti.map((v, i) => v === null ? null : `${x(i).toFixed(1)},${y(v).toFixed(1)}`).filter(Boolean);
+    s += `<polyline class="traccia-mod" data-id="${sm.id}" points="${pts.join(' ')}"/>`;
+  }
+  s += `<polyline class="linea-cons" points="${consensoPunti.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ')}"/>`;
+  s += `<rect x="${ML}" y="${MT}" width="${W - ML - MR}" height="${HG}" fill="transparent" style="cursor:crosshair"/>`;
+  s += `<line id="mirino-v" class="mirino" x1="0" y1="${MT}" x2="0" y2="${MT + HG}" style="opacity:0"/>`;
+
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Confronto fra i singoli modelli">${s}</svg>
+    <div class="suggerimento" id="sug-v"></div>`;
+
+  const svg = box.querySelector('svg'), sug = $('#sug-v'), mirino = $('#mirino-v');
+  svg.addEventListener('pointermove', ev => {
+    const r = svg.getBoundingClientRect();
+    const px = (ev.clientX - r.left) * (W / r.width);
+    const py = (ev.clientY - r.top) * (W / r.width);
+    const i = chiudi(Math.floor((px - ML) / larg), 0, n - 1);
+    const valori = serieMod.map(sm => ({ id: sm.id, v: sm.punti[i] })).filter(o => o.v !== null);
+    if (!valori.length) return;
+    let vicino = valori[0], dist = Infinity;
+    for (const o of valori) { const d2 = Math.abs(y(o.v) - py); if (d2 < dist) { dist = d2; vicino = o; } }
+    svg.querySelectorAll('.traccia-mod').forEach(p => p.classList.toggle('evid', p.dataset.id === vicino.id && dist < 9));
+    mirino.setAttribute('x1', x(i)); mirino.setAttribute('x2', x(i)); mirino.style.opacity = '1';
+    const vals = valori.map(o => o.v).sort((a, b) => a - b);
+    const um = variabile === 'pioggia' ? ' mm' : ' °C';
+    const m = PER_ID[vicino.id];
+    sug.innerHTML = `<h4>${nomeGiorno(dati[i].k.slice(0, 10), dati[0].k.slice(0, 10))} ${oraDi(dati[i].k)}</h4>
+      <div class="sug-riga"><span>consenso</span><b>${g1(consensoPunti[i])}${um}</b></div>
+      <div class="sug-riga"><span>più basso</span><b>${g1(vals[0])}${um}</b></div>
+      <div class="sug-riga"><span>più alto</span><b>${g1(vals[vals.length - 1])}${um}</b></div>
+      <div class="sug-riga"><span>modelli</span><b>${vals.length}</b></div>
+      ${dist < 9 && m ? `<div class="sug-riga" style="margin-top:5px; border-top:1px solid var(--line); padding-top:5px"><span>${m.nome}, ${m.ente}</span><b>${g1(vicino.v)}${um}</b></div>` : ''}`;
+    sug.classList.add('on');
+    const scala = r.width / W;
+    let sx = x(i) * scala + 12;
+    if (sx + 215 > r.width) sx = x(i) * scala - 215;
+    sug.style.left = Math.max(4, sx) + 'px';
+    sug.style.top = '10px';
+  });
+  svg.addEventListener('pointerleave', () => {
+    sug.classList.remove('on'); mirino.style.opacity = '0';
+    svg.querySelectorAll('.traccia-mod').forEach(p => p.classList.remove('evid'));
+  });
+}
+
+/* ---------------- pagella ---------------- */
+
+function rendiPagella() {
+  const { pagella } = STATO;
+  const disponibili = Object.keys(STATO.det.serie);
+  const { pesi } = pesiFamiglia(pagella, 24, disponibili);
+  const righe = MODELLI.filter(m => pagella[m.id]).map(m => {
+    const v = pagella[m.id];
+    return {
+      m, v,
+      mae24: v.per[24] ? v.per[24].mae : null,
+      mae48: v.per[48] ? v.per[48].mae : null,
+      mae72: v.per[72] ? v.per[72].mae : null,
+      pod: v.per[24] ? v.per[24].pod : null,
+      far: v.per[24] ? v.per[24].far : null,
+      peso: pesi[m.fam] || 0
+    };
+  }).sort((a, b) => (a.mae24 === null ? 99 : a.mae24) - (b.mae24 === null ? 99 : b.mae24));
+
+  if (!righe.length) {
+    $('#tabella-pagella').innerHTML = '<p class="vuoto">Verifica non disponibile: le misure delle stazioni o le previsioni passate non sono arrivate.</p>';
+    return;
+  }
+  const pesoMax = Math.max(...righe.map(r => r.peso));
+  const corpo = righe.map((r, i) => `
+    <tr>
+      <td><span class="rank">${i + 1}</span><b>${r.m.nome}</b><span class="ente">${r.m.ente} · ${r.m.ris}</span></td>
+      <td class="v">${r.mae24 === null ? '-' : g1(r.mae24) + ' °C'}</td>
+      <td class="v">${r.mae48 === null ? '-' : g1(r.mae48) + ' °C'}</td>
+      <td class="v">${r.mae72 === null ? '-' : g1(r.mae72) + ' °C'}</td>
+      <td class="v">${r.pod === null ? '-' : pc(r.pod)}</td>
+      <td class="v">${r.far === null ? '-' : pc(r.far)}</td>
+      <td><span class="barra-peso"><i style="width:${Math.max(2, (r.peso / pesoMax) * 54).toFixed(0)}px"></i><span class="v">${pc(r.peso)}</span></span></td>
+    </tr>`).join('');
+
+  $('#tabella-pagella').innerHTML = `<div class="scorri"><table>
+    <thead><tr>
+      <th>Modello</th><th>Errore 24 h</th><th>Errore 48 h</th><th>Errore 72 h</th>
+      <th>Pioggia vista</th><th>Falsi allarmi</th><th>Peso del centro</th>
+    </tr></thead><tbody>${corpo}</tbody></table></div>
+    <p class="guida" style="margin-top:12px; margin-bottom:0">Errore: scarto medio assoluto sulla temperatura oraria rispetto alle stazioni, per previsioni emesse 24, 48 e 72 ore prima. Pioggia vista: quante volte il modello aveva annunciato la pioggia che poi è caduta. Falsi allarmi: quante volte ha annunciato pioggia che non è arrivata. Il peso vale per tutto il centro, così un centro con tre modelli non conta tre volte.</p>`;
+
+  rendiImparato(righe);
+}
+
+function rendiImparato(righe) {
+  const note = [];
+  const migliore = righe[0], peggiore = righe[righe.length - 1];
+  if (migliore && migliore.mae24 !== null) {
+    note.push({ cls: '', t: 'chi comanda adesso',
+      d: `Su Pedrengo, negli ultimi giorni, ${migliore.m.nome} di ${migliore.m.ente} è il più preciso sulla temperatura a 24 ore: ${g1(migliore.mae24)} gradi di errore medio contro ${g1(peggiore.mae24)} del meno preciso. Per questo il suo centro pesa ${pc(migliore.peso)} nel consenso.` });
+  }
+
+  // scarto medio per regime, calcolato sui modelli
+  const perRegime = {};
+  for (const r of righe) {
+    for (const [reg, dati] of Object.entries(r.v.regimi || {})) {
+      (perRegime[reg] = perRegime[reg] || []).push({ s: dati.scarto, n: dati.n });
+    }
+  }
+  const nomiRegime = { 'notte-sereno': 'notti serene', 'notte-coperto': 'notti coperte', 'giorno-sereno': 'giornate soleggiate', 'giorno-coperto': 'giornate coperte' };
+  let peggioreReg = null;
+  for (const [reg, lista] of Object.entries(perRegime)) {
+    const s = media(lista.map(x => x.s));
+    if (lista.length >= 4 && (peggioreReg === null || Math.abs(s) > Math.abs(peggioreReg.s))) peggioreReg = { reg, s, n: somma(lista.map(x => x.n)) };
+  }
+  if (peggioreReg && Math.abs(peggioreReg.s) > 0.35) {
+    note.push({ cls: 'corr', t: 'errore sistematico trovato',
+      d: `Nelle ${nomiRegime[peggioreReg.reg] || peggioreReg.reg} i modelli leggono in media ${peggioreReg.s > 0 ? g1(peggioreReg.s) + ' gradi in più' : g1(-peggioreReg.s) + ' gradi in meno'} rispetto alle stazioni. Questa correzione viene sottratta prima di calcolare il consenso, non dopo.` });
+  }
+
+  const far = righe.map(r => r.far).filter(x => x !== null);
+  const pod = righe.map(r => r.pod).filter(x => x !== null);
+  if (far.length >= 5) {
+    note.push({ cls: 'att', t: 'falsi allarmi pioggia',
+      d: `In media, quando un modello annuncia pioggia a Pedrengo, nel ${pc(media(far))} dei casi non arriva niente di misurabile. La probabilità mostrata sopra è già abbassata di conseguenza, invece di ripetere l'annuncio.` });
+  }
+  if (pod.length >= 5) {
+    note.push({ cls: '', t: 'pioggia che sfugge',
+      d: `I modelli intercettano in media il ${pc(media(pod))} delle ore di pioggia effettivamente misurate. Il restante sfugge quasi sempre perché si tratta di rovesci brevi e locali, che a 2 km di distanza non cadono.` });
+  }
+
+  if (STATO.bins) {
+    const utili = STATO.bins.filter(b => b.n >= 10);
+    if (utili.length >= 3) {
+      const alto = utili[utili.length - 1];
+      note.push({ cls: 'corr', t: 'taratura della probabilità',
+        d: `Quando ${Math.round(alto.c * 100)} per cento dei centri annunciava pioggia, negli ultimi giorni è piovuto davvero nel ${pc(alto.colpi / alto.n)} dei casi su ${alto.n} ore verificate. È questa curva, non una tabella fissa, a convertire l'accordo dei modelli in probabilità.` });
+    }
+  }
+  if (STATO.offsetSito !== null) {
+    note.push({ cls: '', t: 'differenza fra stazione e paese',
+      d: `Le stazioni usate come riferimento misurano in media ${g1(Math.abs(STATO.offsetSito))} gradi ${STATO.offsetSito > 0 ? 'in più' : 'in meno'} rispetto al punto di Pedrengo. Lo scarto viene rimosso prima di giudicare i modelli, altrimenti verrebbe scambiato per un loro errore.` });
+  }
+
+  $('#imparato').innerHTML = note.map(n => `<div class="nota ${n.cls}"><b>${n.t}</b>${n.d}</div>`).join('');
+}
+
+/* ---------------- verifica storica ---------------- */
+
+function rendiVerifica() {
+  const righe = STATO.verifica;
+  if (!righe.length) {
+    $('#tabella-verifica').innerHTML = '<p class="vuoto">Non ci sono ancora giorni completi da verificare.</p>';
+    return;
+  }
+  const corpo = righe.slice().reverse().map(r => {
+    const err = r.tmaxPrev - r.tmaxVero;
+    const col = Math.abs(err) < 1 ? 'var(--ok)' : Math.abs(err) < 2.2 ? 'var(--attesa)' : 'var(--allerta)';
+    const pioggiaOk = (r.mmVero >= 0.5) === (r.mmPrev >= 0.5);
+    return `<tr>
+      <td><b>${dataBreve(r.data)}</b><span class="ente">${GIORNI_NOME[dataDaChiave(r.data + 'T12').getDay()]}</span></td>
+      <td class="v">${g1(r.tmaxPrev)}</td>
+      <td class="v">${g1(r.tmaxVero)}</td>
+      <td class="v" style="color:${col}">${err > 0 ? '+' : ''}${g1(err)}</td>
+      <td class="v">${g1(r.maeCons)}</td>
+      <td class="v">${r.migliore ? g1(r.migliore.mae) : '-'}</td>
+      <td class="v">${r.totali ? r.battuti + ' su ' + r.totali : '-'}</td>
+      <td class="v" style="color:${pioggiaOk ? 'var(--ok)' : 'var(--allerta)'}">${g1(r.mmPrev)} / ${g1(r.mmVero)}</td>
+    </tr>`;
+  }).join('');
+
+  const maeMedio = media(righe.map(r => r.maeCons));
+  const migliori = righe.map(r => r.migliore ? r.migliore.mae : null).filter(x => x !== null);
+  const mediani = righe.map(r => r.mediano ? r.mediano.mae : null).filter(x => x !== null);
+  const battuti = somma(righe.map(r => r.battuti)), totali = somma(righe.map(r => r.totali));
+
+  $('#tabella-verifica').innerHTML = `<div class="scorri"><table>
+    <thead><tr>
+      <th>Giorno</th><th>Massima prevista</th><th>Massima vera</th><th>Scarto</th>
+      <th>Errore consenso</th><th>Errore miglior modello</th><th>Modelli battuti</th><th>Pioggia prev. / vera</th>
+    </tr></thead><tbody>${corpo}</tbody></table></div>
+    <div class="imparato" style="margin-top:14px">
+      <div class="nota"><b>Il conto</b>Su ${righe.length} giorni verificati, il consenso ha sbagliato in media <b style="display:inline; font-family:var(--mono); text-transform:none; letter-spacing:0; color:var(--ink); font-size:inherit">${g1(maeMedio)} gradi</b> sulla temperatura oraria, contro ${g1(media(mediani))} del modello singolo mediano e ${g1(media(migliori))} del migliore scelto con il senno di poi.</div>
+      <div class="nota ${battuti / Math.max(1, totali) > 0.6 ? '' : 'att'}"><b>Ha senso incrociare?</b>Il consenso è stato più preciso di ${battuti} confronti su ${totali} con i singoli modelli, cioè nel ${pc(battuti / Math.max(1, totali))} dei casi. ${battuti / Math.max(1, totali) > 0.6 ? 'Incrociare i modelli sta pagando.' : 'In questi giorni il vantaggio è stato modesto, capita quando la situazione è stabile e tutti i modelli vanno bene.'}</div>
+      <div class="nota att"><b>Nota onesta</b>Questa ricostruzione usa le previsioni emesse un giorno prima, a pesi uguali fra centri, per evitare di giudicarsi con i pesi ricavati dagli stessi dati. È il confronto più severo possibile con le informazioni disponibili.</div>
+    </div>`;
+}
+
+/* ---------------- memoria di lungo periodo ---------------- */
+
+async function apriMemoria() {
+  try {
+    const db = await (window.claude && window.claude.use ? window.claude.use('db') : null);
+    if (!db) return null;
+    return db;
+  } catch (e) { return null; }
+}
+
+async function leggiMemoria(db) {
+  const out = { taratura: null, storico: [] };
+  try {
+    const t = await db.doc('memoria/taratura').get();
+    if (t.exists) out.taratura = t.data();
+  } catch (e) { }
+  try {
+    const q = await db.collection('verifiche').orderBy('data', 'desc').limit(120).get();
+    out.storico = q.docs.map(d => d.data()).filter(Boolean);
+  } catch (e) { }
+  return out;
+}
+
+async function scriviMemoria(db) {
+  const oggi = chiaveOra(new Date()).slice(0, 10);
+  try {
+    const lucchetto = await db.doc('memoria/lucchetto').acquire({ holder: 'sessione-' + Math.random().toString(36).slice(2, 8), ttlMs: 20000 });
+    if (!lucchetto.acquired) return;
+  } catch (e) { return; }
+
+  // bins della taratura, sommati a quelli già in memoria
+  try {
+    const rif = db.doc('memoria/taratura');
+    const attuale = await rif.get();
+    const vecchi = attuale.exists && Array.isArray(attuale.data().bins) ? attuale.data().bins : null;
+    const fusi = (STATO.bins || []).map((b, i) => {
+      const v = vecchi && vecchi[i] ? vecchi[i] : { n: 0, colpi: 0 };
+      const ultimo = attuale.exists ? attuale.data().ultimo : null;
+      if (ultimo === oggi) return v;
+      return { c: b.c, n: (v.n || 0) + b.n, colpi: (v.colpi || 0) + b.colpi };
+    });
+    await rif.set({ bins: fusi, ultimo: oggi, aggiornato: new Date().toISOString() });
+  } catch (e) { }
+
+  // una riga di verifica per ogni giorno chiuso
+  try {
+    for (const r of STATO.verifica.slice(-4)) {
+      if (r.data >= oggi) continue;
+      const rif = db.collection('verifiche').doc(r.data);
+      const esiste = await rif.get();
+      if (esiste.exists) continue;
+      await rif.set({
+        data: r.data, tmaxPrev: r.tmaxPrev, tmaxVero: r.tmaxVero, tminPrev: r.tminPrev, tminVero: r.tminVero,
+        maeCons: r.maeCons, maeMigliore: r.migliore ? r.migliore.mae : null,
+        battuti: r.battuti, totali: r.totali, mmPrev: r.mmPrev, mmVero: r.mmVero,
+        scritto: new Date().toISOString()
+      });
+    }
+  } catch (e) { }
+}
+
+function fondiTaratura(memoria) {
+  if (!memoria || !memoria.taratura || !Array.isArray(memoria.taratura.bins)) return;
+  STATO.bins = STATO.bins.map((b, i) => {
+    const v = memoria.taratura.bins[i];
+    if (!v) return b;
+    return { c: b.c, n: b.n + (v.n || 0), colpi: b.colpi + (v.colpi || 0) };
+  });
+}
+
+function aggiungiStorico(memoria) {
+  if (!memoria || !memoria.storico.length) return;
+  const presenti = new Set(STATO.verifica.map(r => r.data));
+  const extra = memoria.storico
+    .filter(r => r && r.data && !presenti.has(r.data))
+    .map(r => ({ ...r, migliore: r.maeMigliore !== null && r.maeMigliore !== undefined ? { mae: r.maeMigliore } : null,
+                 mediano: null, peggiore: null }))
+    .sort((a, b) => a.data < b.data ? -1 : 1);
+  STATO.verifica = extra.concat(STATO.verifica);
+}
+
+/* ---------------- avvio ---------------- */
+
+async function avvia() {
+  const t0 = performance.now();
+  stato('scarico i modelli', '');
+  passo(0);
+
+  const idModelli = MODELLI.map(m => m.id).join(',');
+  const orizzonteVerifica = new Date(Date.now() - GIORNI_VERIFICA * 86400e3).toISOString().slice(0, 19);
+  const recente = new Date(Date.now() - 12 * 3600e3).toISOString().slice(0, 19);
+
+  const richieste = [
+    scaricaConRitento(urlOpenMeteo('https://api.open-meteo.com/v1/forecast', {
+      hourly: VARIABILI.join(','), models: idModelli, forecast_days: 7, past_days: 2
+    }), 45000),
+    scaricaConRitento(urlOpenMeteo('https://ensemble-api.open-meteo.com/v1/ensemble', {
+      hourly: 'temperature_2m,precipitation', models: 'ecmwf_ifs025,icon_eu,gfs025', forecast_days: 7
+    }), 45000),
+    scaricaConRitento(urlOpenMeteo('https://previous-runs-api.open-meteo.com/v1/forecast', {
+      hourly: ['temperature_2m', 'temperature_2m_previous_day1', 'temperature_2m_previous_day2', 'temperature_2m_previous_day3',
+               'precipitation', 'precipitation_previous_day1', 'precipitation_previous_day2', 'precipitation_previous_day3'].join(','),
+      models: idModelli, past_days: 7, forecast_days: 1
+    }), 45000),
+    scaricaConRitento(urlArpa(['8145', '19022', '5864', '8161', '19026', '5857', '22322'], orizzonteVerifica, 30000), 45000),
+    scaricaConRitento(urlArpa(['6158', '19103', '5981'], recente, 500), 25000),
+    scarica(urlOpenMeteo('https://api.open-meteo.com/v1/forecast', {
+      hourly: 'cape', models: 'icon_seamless,ecmwf_ifs025,gfs_seamless,italia_meteo_arpae_icon_2i', forecast_days: 7
+    }), 30000).catch(() => null)
+  ];
+
+  const esiti = await Promise.allSettled(richieste);
+  const val = i => esiti[i].status === 'fulfilled' ? esiti[i].value : null;
+  STATO.tempi.rete = Math.round(performance.now() - t0);
+  passo(2);
+
+  const rDet = val(0);
+  if (!rDet) {
+    stato('nessun dato raggiunto', 'rotto');
+    const motivo = esiti[0].reason;
+    const bloccato = motivo && /Failed to fetch|NetworkError|blocked|CSP/i.test(String(motivo.message || motivo));
+    $('#blocco-adesso').innerHTML = `<div class="riquadro" style="grid-column:1 / -1">
+      <div class="errore">
+        <b style="display:block; margin-bottom:6px">Nessun dato scaricato: ${bloccato ? 'le richieste di rete sono state bloccate' : 'i server non hanno risposto'}.</b>
+        ${bloccato
+          ? 'La pagina sta girando in un contesto che vieta le chiamate verso api.open-meteo.com e dati.lombardia.it. Succede dentro le anteprime in sandbox. Aprila da un server web normale, anche solo in locale, e i dati arrivano.'
+          : 'Controlla la connessione e ricarica. Se il problema resta, i servizi Open-Meteo o ARPA Lombardia potrebbero essere momentaneamente fermi.'}
+        <span style="display:block; margin-top:8px; font-family:var(--mono); font-size:11.5px; opacity:.8">dettaglio tecnico: ${String(motivo && motivo.message ? motivo.message : motivo || 'sconosciuto').slice(0, 120)}</span>
+      </div></div>`;
+    for (const sel of ['#tela-ore', '#tela-ventaglio', '#lista-giorni', '#tabella-pagella', '#tabella-verifica']) {
+      const e = $(sel); if (e) e.innerHTML = '<p class="vuoto">In attesa dei dati.</p>';
+    }
+    $('#bollettino').innerHTML = '<p class="vuoto">Senza dati non viene scritto nessun bollettino. Meglio niente che una previsione inventata.</p>';
+    return;
+  }
+  stato('incrocio i dati', '');
+
+  const det = leggiMultiModello(rDet, MODELLI.map(m => m.id), VARIABILI);
+  const ens = val(1) ? leggiEnsemble(val(1)) : { ore: [], sistemi: {} };
+  const prev = val(2) ? leggiMultiModello(val(2), MODELLI.map(m => m.id),
+    ['temperature_2m', 'temperature_2m_previous_day1', 'temperature_2m_previous_day2', 'temperature_2m_previous_day3',
+     'precipitation', 'precipitation_previous_day1', 'precipitation_previous_day2', 'precipitation_previous_day3']) : { ore: [], serie: {} };
+
+  const righeArpa = (val(3) || []).concat(val(4) || []);
+  const perSensore = aggregaArpa(righeArpa);
+  let oss = serieOsservate(perSensore);
+
+  // ultimi valori grezzi per il pannello di adesso
+  const ultimi = {};
+  for (const r of righeArpa) {
+    const v = parseFloat(r.valore);
+    if (!isFinite(v) || v <= -900) continue;
+    if (!ultimi[r.idsensore] || r.data > ultimi[r.idsensore].raw) {
+      const d = new Date(r.data.length > 19 ? r.data + 'Z' : r.data + '.000Z');
+      ultimi[r.idsensore] = { v, raw: r.data, ora: new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit' }).format(d) };
+    }
+  }
+  STATO.ultimi = ultimi;
+
+  // analisi multimodello per le ore passate, serve per allineamento e correzione di sito.
+  // i run precedenti coprono sette giorni indietro, la previsione corrente solo due
+  const analisi = new Map();
+  const accumula = (fonte) => {
+    const per = new Map();
+    for (const id of Object.keys(fonte.serie)) {
+      const t = fonte.serie[id].temperature_2m;
+      if (!t) continue;
+      t.forEach((v, k) => { if (!per.has(k)) per.set(k, []); per.get(k).push(v); });
+    }
+    per.forEach((v, k) => { if (v.length >= 5 && !analisi.has(k)) analisi.set(k, media(v)); });
+  };
+  accumula(det);
+  accumula(prev);
+
+  const all = controllaAllineamento(oss.temp, analisi);
+  if (all.scarto) {
+    oss = { ...oss, temp: spostaSerie(oss.temp, all.scarto), pioggia: spostaSerie(oss.pioggia, all.scarto) };
+  }
+
+  // scarto sistematico fra stazioni e punto griglia di Pedrengo
+  const diffSito = [];
+  oss.temp.forEach((v, k) => { const a = analisi.get(k); if (a !== undefined) diffSito.push(v - a); });
+  if (diffSito.length >= 48) {
+    diffSito.sort((a, b) => a - b);
+    STATO.offsetSito = diffSito[Math.floor(diffSito.length / 2)];
+    const corretta = new Map();
+    oss.temp.forEach((v, k) => corretta.set(k, v - STATO.offsetSito));
+    oss = { ...oss, temp: corretta, tempStazione: new Map(oss.temp) };
+  }
+
+  const nuvoleRif = new Map();
+  for (const k of det.ore) {
+    const v = [];
+    for (const id of Object.keys(det.serie)) {
+      const c = det.serie[id].cloud_cover; if (c && c.has(k)) v.push(c.get(k));
+    }
+    if (v.length) nuvoleRif.set(k, media(v));
+  }
+
+  STATO.pagella = calcolaPagella(prev, oss, nuvoleRif);
+  STATO.bins = curvaAffidabilita(prev, oss);
+  STATO.verifica = verificaStorica(prev, oss);
+  passo(3);
+
+  const memoria = await (async () => { const db = await apriMemoria(); return db ? { db, dati: await leggiMemoria(db) } : null; })();
+  if (memoria) { fondiTaratura(memoria.dati); aggiungiStorico(memoria.dati); }
+
+  const cape = new Map();
+  const rCape = val(5);
+  if (rCape && rCape.hourly) {
+    const h = rCape.hourly;
+    const colonne = Object.keys(h).filter(k => k.startsWith('cape'));
+    h.time.forEach((t, i) => {
+      const v = colonne.map(c => num(h[c][i])).filter(x => x !== null);
+      if (v.length) cape.set(t.slice(0, 13), Math.max(...v));
+    });
+  }
+
+  const adesso = chiaveOra(new Date());
+  STATO.det = det; STATO.ens = ens; STATO.oss = oss;
+  STATO.consenso = costruisciConsenso({ det, ens, pagella: STATO.pagella, oss, bins: STATO.bins, adesso, cape });
+  STATO.giorni = aggregaGiorni(STATO.consenso, ens, adesso.slice(0, 10));
+  passo(4);
+
+  // tag di testa
+  const nMod = Object.keys(det.serie).length;
+  const nFam = new Set(Object.keys(det.serie).map(id => PER_ID[id].fam)).size;
+  let nMembri = 0;
+  for (const s of Object.values(ens.sistemi || {})) nMembri += s.membri.size;
+  $('#tag-modelli').textContent = `${nMod} modelli · ${nFam} centri`;
+  $('#tag-membri').textContent = nMembri ? `${nMembri} membri di ensemble` : 'ensemble non disponibile';
+  const nVer = somma(Object.values(STATO.pagella).map(v => v.campioni));
+  $('#tag-verifica').textContent = nVer ? `${g0(nVer)} confronti con le stazioni` : 'verifica non disponibile';
+  $('#metodo-offset').textContent = STATO.offsetSito === null ? 'non stimabile'
+    : (STATO.offsetSito > 0 ? '+' : '') + g1(STATO.offsetSito) + ' °C';
+
+  const attive = [];
+  for (const s of STAZIONI) {
+    if (!perSensore[s.id] || !perSensore[s.id].size) continue;
+    if (!attive.some(a => a.nome === s.nome)) attive.push(s);
+  }
+  if (attive.length) {
+    $('#metodo-stazioni').textContent = attive
+      .sort((a, b) => a.km - b.km)
+      .map(s => s.nome + ' a ' + g1(s.km) + ' km')
+      .join(', ');
+  }
+
+  rendiAdesso();
+  rendiBollettino();
+  disegnaOre();
+  rendiGiorni();
+  rendiComandiVentaglio();
+  disegnaVentaglio();
+  rendiPagella();
+  rendiVerifica();
+  passo(5);
+  stato('dati aggiornati', 'vivo');
+  STATO.tempi.totale = Math.round(performance.now() - t0);
+  $('#pie-tempi').textContent = `Scaricati e incrociati ${nMod} modelli, ${nMembri} membri di ensemble e ${g0(righeArpa.length)} letture di stazione in ${(STATO.tempi.totale / 1000).toFixed(1)} secondi.`;
+
+  if (memoria && memoria.db) { scriviMemoria(memoria.db).catch(() => { }); }
+
+  let attesa;
+  window.addEventListener('resize', () => {
+    clearTimeout(attesa);
+    attesa = setTimeout(() => { disegnaOre(); disegnaVentaglio(); }, 220);
+  });
+  setInterval(() => { if (STATO.oss) rendiAdesso(); }, 300000);
+}
+
+avvia().catch(e => {
+  stato('errore', 'rotto');
+  $('#tela-ore').innerHTML = '<div class="errore">Qualcosa è andato storto nel calcolo: ' + (e && e.message ? e.message : 'errore sconosciuto') + '. Ricarica la pagina.</div>';
+  console.error(e);
+});
+</script>
+</body>
+</html>
