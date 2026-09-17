@@ -121,48 +121,81 @@ function rendiEroe() {
   const { oss, consenso, ultimi, giorni } = STATO;
   const adesso = consenso[0];
   const kOra = chiaveOra(new Date());
-  const tOss = oss.temp.get(kOra) !== undefined ? oss.temp.get(kOra) : oss.temp.get(chiaveDa(kOra, -1));
-  const pioggiaOra = oss.pioggia.get(kOra);
-  const ultimaT = ultimi['8145'] || ultimi['5864'];
-  const ultimaU = ultimi['6158'];
-  const ultimoV = ultimi['19103'];
 
+  /* La misura piu recente, cercata indietro fino a sei ore: ARPA a volte
+     pubblica con due o tre ore di ritardo, e una pagina che in quel caso
+     mostra un trattino al posto della temperatura non serve a nessuno. */
+  let tMis = null, kMis = null;
+  for (let d = 0; d >= -6; d--) {
+    const k = chiaveDa(kOra, d);
+    if (oss.temp.has(k)) { tMis = oss.temp.get(k); kMis = k; break; }
+  }
+  let ultimaLettura = null;
+  for (const s of STAZIONI.filter(x => x.tipo === 'temp')) {
+    const u = ultimi[s.chiave];
+    if (u && (!ultimaLettura || u.raw > ultimaLettura.raw)) ultimaLettura = u;
+  }
+  const eta = ultimaLettura ? Math.round((Date.now() - ultimaLettura.istante.getTime()) / 60000) : null;
+  const fresca = (eta !== null && eta <= 45 && tMis !== null);
+
+  // quando la misura e vecchia, il numero grande diventa la stima dei modelli
+  // per l ora corrente, che a quel punto e la risposta piu vicina al vero
+  const grande = fresca ? tMis : (adesso ? adesso.t : tMis);
+  const daModelli = !fresca && adesso !== undefined && adesso !== null;
+
+  const umidMis = kMis !== null && oss.umidita.has(kMis) ? oss.umidita.get(kMis) : null;
+  const ventoMis = kMis !== null && oss.vento.has(kMis) ? oss.vento.get(kMis) : null;
+  const raffMis = kMis !== null && oss.raffica && oss.raffica.has(kMis) ? oss.raffica.get(kMis) : null;
+  const umid = (!daModelli && umidMis !== null) ? umidMis : (adesso ? adesso.umidita : umidMis);
+  const ventoMs = (!daModelli && ventoMis !== null) ? ventoMis : (adesso && adesso.vento !== null ? adesso.vento / 3.6 : ventoMis);
+  const perc = percepita(grande, umid, ventoMs);
+  const motivo = motivoPercepita(grande, perc, umid, ventoMs);
+
+  const pioggiaOra = oss.pioggia.get(kMis || kOra);
   let pioggiaOggi = 0;
   const oggiChiave = kOra.slice(0, 10);
   oss.pioggia.forEach((v, k) => { if (k.slice(0, 10) === oggiChiave) pioggiaOggi += v; });
 
-  const scarto = (tOss !== undefined && adesso) ? (adesso.t - tOss) : null;
   const [ic, testo] = adesso ? tipoTempo(adesso) : ['nuvoloso', 'in attesa'];
-  $('#top-temp').textContent = tOss !== undefined ? g1(tOss) + ' °C' : '';
+  $('#top-temp').textContent = grande === null ? '' : g1(grande) + ' °C';
 
-  /* colonna di sinistra: il numero misurato adesso, e quanto i modelli
-     lo stanno sbagliando proprio in questo momento */
-  let scartoTesto = '';
+  const scarto = (tMis !== null && adesso && fresca) ? (adesso.t - tMis) : null;
+  let sottoTesto = '';
   if (scarto !== null) {
     const colore = Math.abs(scarto) < 0.7 ? 'var(--ok)' : Math.abs(scarto) < 1.6 ? 'var(--attesa)' : 'var(--allerta)';
     const giudizio = Math.abs(scarto) < 0.7 ? 'i modelli ci stanno prendendo'
       : Math.abs(scarto) < 1.6 ? 'scarto contenuto'
       : scarto > 0 ? 'i modelli sovrastimano' : 'i modelli sottostimano';
-    scartoTesto = `<div class="ora-scarto">i modelli davano <b>${g1(adesso.t)} °C</b> per quest'ora<br>
+    sottoTesto = `<div class="ora-scarto">i modelli davano <b>${g1(adesso.t)} °C</b> per quest'ora<br>
       scarto <b style="color:${colore}">${scarto > 0 ? '+' : ''}${g1(scarto)} °C</b>, ${giudizio}</div>`;
+  } else if (daModelli && tMis !== null) {
+    const ore = Math.floor(eta / 60), minuti = eta % 60;
+    sottoTesto = `<div class="ora-scarto">ultima misura delle <b>${ultimaLettura.ora}</b>: ${g1(tMis)} °C<br>
+      le stazioni pubblicano con ${ore > 0 ? ore + (ore === 1 ? ' ora' : ' ore') : ''}${ore > 0 && minuti > 5 ? ' e ' : ''}${(ore === 0 || minuti > 5) ? minuti + ' minuti' : ''} di ritardo</div>`;
+  } else if (daModelli) {
+    sottoTesto = `<div class="ora-scarto">nessuna misura recente dalle stazioni,<br>il numero viene dai modelli</div>`;
   }
+
   $('#eroe-ora').innerHTML = `
-    <span class="etichetta">Adesso · misurato, non previsto</span>
+    <span class="etichetta">${fresca ? 'Adesso · misurato dalle stazioni' : 'Adesso · stimato dai modelli'}</span>
     <div class="ora-grande">
-      <div class="cifra">${tOss !== undefined ? g1(tOss) : '-'}<sup>°C</sup></div>
+      <div>
+        <div class="cifra">${grande === null ? '-' : g1(grande)}<sup>°C</sup></div>
+        ${perc === null ? '' : `<div class="percepita">percepiti <b>${g1(perc)}°</b>${motivo ? ` <span>${motivo}</span>` : ''}</div>`}
+      </div>
       <div class="ora-lato">
         <div class="ora-desc">${icona(ic, 22)}<span>${testo}</span></div>
-        ${scartoTesto}
+        ${sottoTesto}
       </div>
     </div>`;
 
-  /* colonna di destra: la giornata in cinque righe */
   const oggi = giorni[0];
   if (oggi) {
     /* L arco copre la giornata da minima a massima, e la pallina dice dove ci
        troviamo adesso dentro quell escursione. */
     const campo = Math.max(0.5, oggi.tmax - oggi.tmin);
-    const dove = tOss === undefined ? null : chiudi((tOss - oggi.tmin) / campo, 0, 1) * 100;
+    const dove = grande === null ? null : chiudi((grande - oggi.tmin) / campo, 0, 1) * 100;
+    const vento = ventoMs === null ? null : ventoMs * 3.6;
     $('#eroe-oggi').innerHTML = `
       <span class="etichetta">Oggi a Pedrengo</span>
       <div class="arco">
@@ -176,7 +209,8 @@ function rendiEroe() {
       <div class="oggi-righe">
         <div class="oggi-riga"><span>probabilità di pioggia</span><b>${pc(oggi.prob)}${oggi.mm >= 0.15 ? ' · ' + g1(oggi.mm) + ' mm' : ''}</b></div>
         <div class="oggi-riga"><span>caduta finora</span><b>${g1(pioggiaOggi)} mm</b></div>
-        <div class="oggi-riga"><span>umidità e vento</span><b>${ultimaU ? g0(ultimaU.v) + '%' : '-'}${ultimoV ? ' · ' + g1(ultimoV.v) + ' m/s' : ''}</b></div>
+        <div class="oggi-riga"><span>umidità</span><b>${umid === null ? '-' : g0(umid) + '%'}</b></div>
+        <div class="oggi-riga"><span>vento${raffMis !== null ? ', raffiche' : ''}</span><b>${vento === null ? '-' : (raffMis !== null ? g0(vento) + ' · ' + g0(raffMis * 3.6) + ' km/h' : g0(vento) + ' km/h')}</b></div>
         <div class="oggi-riga"><span>accordo fra i centri</span><b><span class="chip ${oggi.fiducia}">${oggi.fiducia}</span></b></div>
       </div>`;
   }
@@ -186,16 +220,24 @@ function rendiEroe() {
   $('#eroe-strip').innerHTML = prossime.map((o) => {
     const [ico] = tipoTempo(o);
     const prob = Math.round(o.prob * 100);
+    const p = percepita(o.t, o.umidita, o.vento === null ? null : o.vento / 3.6);
+    const diverso = p !== null && Math.abs(p - o.t) >= 1.5;
     return `<div class="cella-ora${eNotte(o.k) ? ' buio' : ''}">
       <span class="qora">${oraDi(o.k).slice(0, 2)}</span>
       ${icona(ico, 20)}
       <span class="qt">${g1(o.t)}°</span>
+      <span class="qperc"${diverso ? '' : ' style="visibility:hidden"'} title="temperatura percepita">${diverso ? 'perc. ' + g0(p) + '°' : '-'}</span>
       <span class="qp${prob < 15 ? ' zero' : ''}">${prob}%</span>
     </div>`;
   }).join('');
 
   const nStazioni = STATO.stazioniAttive || 0;
-  $('#eroe-fonte').innerHTML = `Temperatura misurata da ${nStazioni} stazioni ARPA Lombardia attorno al paese, pesate per distanza, riportate alla quota di Pedrengo e ripulite dallo scarto sistematico della loro posizione${STATO.offsetSito !== null ? ' (' + (STATO.offsetSito > 0 ? '+' : '') + g1(STATO.offsetSito) + ' °C)' : ''}.${ultimaT ? ' Ultima lettura delle ' + ultimaT.ora + '.' : ''} Lo scarto qui sopra viene riusato per riallineare le ore successive.`;
+  const fonteBase = `Le misure vengono da ${nStazioni} stazioni ARPA Lombardia attorno al paese, pesate per distanza, riportate alla quota di Pedrengo e ripulite dallo scarto sistematico della loro posizione${STATO.offsetSito !== null ? ' (' + (STATO.offsetSito > 0 ? '+' : '') + g1(STATO.offsetSito) + ' °C)' : ''}.`;
+  const fontePerc = ` La percepita segue la formula di Steadman, che combina temperatura, umidità e vento.`;
+  const fonteRitardo = fresca
+    ? (ultimaLettura ? ` Ultima lettura delle ${ultimaLettura.ora}.` : '')
+    : ` Le stazioni sono ferme dalle ${ultimaLettura ? ultimaLettura.ora : '?'}, quindi il numero grande viene dal consenso dei modelli e non da un termometro.`;
+  $('#eroe-fonte').innerHTML = fonteBase + fonteRitardo + fontePerc;
 }
 
 /* ---------------- nowcasting ---------------- */
@@ -485,6 +527,7 @@ function disegnaOre() {
     mirino.setAttribute('x1', x(i)); mirino.setAttribute('x2', x(i)); mirino.style.opacity = '1';
     sug.innerHTML = `<h4>${nomeGiorno(d.k.slice(0, 10), dati[0].k.slice(0, 10))} ${oraDi(d.k)}</h4>
       <div class="sug-riga"><span>temperatura</span><b>${g1(d.t)} °C</b></div>
+      <div class="sug-riga"><span>percepita</span><b>${g1(percepita(d.t, d.umidita, d.vento === null ? null : d.vento / 3.6))} °C</b></div>
       <div class="sug-riga"><span>intervallo</span><b>${g1(d.p10)} / ${g1(d.p90)}</b></div>
       <div class="sug-riga"><span>pioggia</span><b>${pc(d.prob)}</b></div>
       ${d.mm >= 0.05 ? `<div class="sug-riga"><span>quantità</span><b>${g1(d.mm)} mm</b></div>` : ''}
@@ -555,7 +598,12 @@ function rendiGiorni() {
         </div>
         <div>
           <h4>Altro</h4>
-          <p>Raffiche fino a ${g0(g.ventoMax)} km/h. Nuvolosità media ${g0(g.nuvoleMedie)} per cento.${g.capeMax >= 700 ? ' Energia convettiva ' + g0(g.capeMax) + ' J/kg, rischio rovesci a macchia.' : ''}${g.neve > 0.3 ? ' Neve attesa ' + g1(g.neve) + ' cm.' : ''}</p>
+          <p>${(() => {
+            const diurne = g.ore.filter(o => { const h = +o.k.slice(11, 13); return h >= 12 && h <= 17; });
+            const rif = diurne.length ? diurne : g.ore;
+            const p = percepita(Math.max(...rif.map(o => o.t)), media(rif.map(o => o.umidita).filter(x => x !== null)), media(rif.map(o => o.vento).filter(x => x !== null)) / 3.6);
+            return p === null ? '' : `Nel pomeriggio si percepiranno ${g1(p)} gradi contro i ${g1(g.tmax)} del termometro. `;
+          })()}Raffiche fino a ${g0(g.ventoMax)} km/h. Nuvolosità media ${g0(g.nuvoleMedie)} per cento.${g.capeMax >= 700 ? ' Energia convettiva ' + g0(g.capeMax) + ' J/kg, rischio rovesci a macchia.' : ''}${g.neve > 0.3 ? ' Neve attesa ' + g1(g.neve) + ' cm.' : ''}</p>
         </div>
       </div>
     </div>`;
@@ -1075,9 +1123,14 @@ async function avvia() {
   for (const r of righeArpa) {
     const v = parseFloat(r.valore);
     if (!isFinite(v) || v <= -900) continue;
-    if (!ultimi[r.idsensore] || r.data > ultimi[r.idsensore].raw) {
+    const op = (r.idoperatore === undefined || r.idoperatore === null) ? '1' : String(r.idoperatore);
+    const chiave = r.idsensore + '|' + op;
+    if (!ultimi[chiave] || r.data > ultimi[chiave].raw) {
       const d = new Date(r.data.length > 19 ? r.data + 'Z' : r.data + '.000Z');
-      ultimi[r.idsensore] = { v, raw: r.data, ora: new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit' }).format(d) };
+      ultimi[chiave] = {
+        v, raw: r.data, istante: d,
+        ora: new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit' }).format(d)
+      };
     }
   }
   STATO.ultimi = ultimi;
@@ -1204,12 +1257,13 @@ async function avvia() {
     $('#metodo-fascia').textContent = 'non ancora misurabile';
   }
 
+  const haDati = s => perSensore[s.chiave] && perSensore[s.chiave].size > 0;
   const attive = [];
   for (const s of STAZIONI) {
-    if (!perSensore[s.id] || !perSensore[s.id].size) continue;
+    if (!haDati(s)) continue;
     if (!attive.some(a => a.nome === s.nome)) attive.push(s);
   }
-  STATO.stazioniAttive = attive.filter(s => s.tipo === 'temp').length;
+  STATO.stazioniAttive = STAZIONI.filter(s => s.tipo === 'temp' && haDati(s)).length;
   if (attive.length) {
     $('#metodo-stazioni').textContent = attive
       .sort((a, b) => a.km - b.km)
