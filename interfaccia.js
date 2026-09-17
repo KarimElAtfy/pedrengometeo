@@ -29,6 +29,10 @@ function dataBreve(dataStr) {
 /* ---------------- simboli ---------------- */
 
 function icona(tipo, dim = 22) {
+  return `<svg viewBox="0 0 24 26" width="${dim}" height="${dim * 26 / 24}" aria-hidden="true" style="flex:none">${corpoIcona(tipo)}</svg>`;
+}
+
+function corpoIcona(tipo) {
   const c = 'stroke="currentColor" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"';
   const nuvola = `<path d="M7 18h9.2a3.4 3.4 0 0 0 .3-6.8 5 5 0 0 0-9.5-1.1A3.5 3.5 0 0 0 7 18z" ${c}/>`;
   const sole = (cx, cy, r) => `<circle cx="${cx}" cy="${cy}" r="${r}" ${c}/>` +
@@ -58,12 +62,21 @@ function icona(tipo, dim = 22) {
     case 'nebbia':    corpo = `<line x1="4" y1="9" x2="20" y2="9" ${c}/><line x1="5.5" y1="13" x2="18.5" y2="13" ${c}/><line x1="4" y1="17" x2="20" y2="17" ${c}/>`; break;
     default:          corpo = nuvola;
   }
-  return `<svg viewBox="0 0 24 26" width="${dim}" height="${dim * 26 / 24}" aria-hidden="true" style="flex:none">${corpo}</svg>`;
+  return corpo;
+}
+
+/* Notte vera, presa da alba e tramonto del giorno, non da un orario fisso:
+   a meta dicembre a Pedrengo fa buio alle 16:40, a fine giugno alle 21:05. */
+function eNotte(k) {
+  const s = STATO.sole && STATO.sole[k.slice(0, 10)];
+  const ora = +k.slice(11, 13);
+  if (!s) return ora >= 20 || ora < 6;
+  return ora < Math.floor(s.alba) || ora >= Math.floor(s.tramonto);
 }
 
 function tipoTempo(o) {
   const ora = +o.k.slice(11, 13);
-  const notte = ora >= 20 || ora < 6;
+  const notte = eNotte(o.k);
   if (o.neve > 0.15 && o.t < 2.5) return ['neve', 'neve'];
   if ((o.cape || 0) >= 800 && o.prob >= 0.35 && o.mm >= 0.4) return ['temporale', 'temporali'];
   if (o.mm >= 2.5) return ['rovesci', 'rovesci'];
@@ -104,72 +117,85 @@ function passo(n) {
 
 /* ---------------- adesso ---------------- */
 
-function rendiAdesso() {
-  const { oss, consenso, ultimi } = STATO;
-  const box = $('#blocco-adesso');
+function rendiEroe() {
+  const { oss, consenso, ultimi, giorni } = STATO;
   const adesso = consenso[0];
   const kOra = chiaveOra(new Date());
   const tOss = oss.temp.get(kOra) !== undefined ? oss.temp.get(kOra) : oss.temp.get(chiaveDa(kOra, -1));
   const pioggiaOra = oss.pioggia.get(kOra);
-  const ultimaT = ultimi['8145'];
+  const ultimaT = ultimi['8145'] || ultimi['5864'];
   const ultimaU = ultimi['6158'];
   const ultimoV = ultimi['19103'];
 
   let pioggiaOggi = 0;
-  const oggi = kOra.slice(0, 10);
-  oss.pioggia.forEach((v, k) => { if (k.slice(0, 10) === oggi) pioggiaOggi += v; });
+  const oggiChiave = kOra.slice(0, 10);
+  oss.pioggia.forEach((v, k) => { if (k.slice(0, 10) === oggiChiave) pioggiaOggi += v; });
 
   const scarto = (tOss !== undefined && adesso) ? (adesso.t - tOss) : null;
-  const [ic, testo] = adesso ? tipoTempo(adesso) : ['nuvoloso', ''];
-
+  const [ic, testo] = adesso ? tipoTempo(adesso) : ['nuvoloso', 'in attesa'];
   $('#top-temp').textContent = tOss !== undefined ? g1(tOss) + ' °C' : '';
 
-  const sinistra = `
-    <div class="riquadro">
-      <div class="misura">
-        <div>
-          <div class="grossa">${tOss !== undefined ? g1(tOss) : '-'}<small> °C</small></div>
-          <div style="margin-top:8px; display:flex; align-items:center; gap:7px; color:var(--ink-2); font-size:13.5px">
-            ${icona(ic, 20)}<span>${testo}</span>
-          </div>
-        </div>
-        <div class="misura-lato">
-          <div class="riga-dato"><span>pioggia nell'ora</span><b>${pioggiaOra !== undefined ? g1(pioggiaOra) + ' mm' : '0,0 mm'}</b></div>
-          <div class="riga-dato"><span>pioggia oggi</span><b>${g1(pioggiaOggi)} mm</b></div>
-          <div class="riga-dato"><span>umidità</span><b>${ultimaU ? g0(ultimaU.v) + '%' : '-'}</b></div>
-          <div class="riga-dato"><span>vento</span><b>${ultimoV ? g1(ultimoV.v) + ' m/s' : '-'}</b></div>
-        </div>
+  /* colonna di sinistra: il numero misurato adesso, e quanto i modelli
+     lo stanno sbagliando proprio in questo momento */
+  let scartoTesto = '';
+  if (scarto !== null) {
+    const colore = Math.abs(scarto) < 0.7 ? 'var(--ok)' : Math.abs(scarto) < 1.6 ? 'var(--attesa)' : 'var(--allerta)';
+    const giudizio = Math.abs(scarto) < 0.7 ? 'i modelli ci stanno prendendo'
+      : Math.abs(scarto) < 1.6 ? 'scarto contenuto'
+      : scarto > 0 ? 'i modelli sovrastimano' : 'i modelli sottostimano';
+    scartoTesto = `<div class="ora-scarto">i modelli davano <b>${g1(adesso.t)} °C</b> per quest'ora<br>
+      scarto <b style="color:${colore}">${scarto > 0 ? '+' : ''}${g1(scarto)} °C</b>, ${giudizio}</div>`;
+  }
+  $('#eroe-ora').innerHTML = `
+    <span class="etichetta">Adesso · misurato, non previsto</span>
+    <div class="ora-grande">
+      <div class="cifra">${tOss !== undefined ? g1(tOss) : '-'}<sup>°C</sup></div>
+      <div class="ora-lato">
+        <div class="ora-desc">${icona(ic, 22)}<span>${testo}</span></div>
+        ${scartoTesto}
       </div>
-      <div class="fonte">Media pesata per distanza delle stazioni ARPA di Torre Boldone, Bergamo via Maffei e Bergamo via Goisis, riportata alla quota di Pedrengo.${ultimaT ? ' Ultima lettura delle ' + ultimaT.ora + '.' : ''}</div>
     </div>`;
 
-  let destra;
-  if (adesso && scarto !== null) {
-    const segno = scarto > 0 ? '+' : '';
-    const giudizio = Math.abs(scarto) < 0.7 ? 'i modelli ci hanno preso'
-      : Math.abs(scarto) < 1.6 ? 'scarto contenuto'
-      : scarto > 0 ? 'i modelli stanno sovrastimando' : 'i modelli stanno sottostimando';
-    const spread = adesso.dettaglio.map(d => d.tGrezza).filter(x => x !== null);
-    const minM = Math.min(...spread), maxM = Math.max(...spread);
-    destra = `
-      <div class="riquadro">
-        <div class="riga-dato" style="border:0; padding-bottom:6px"><span>consenso per le ${oraDi(adesso.k)}</span><b>${g1(adesso.t)} °C</b></div>
-        <div class="scarto" style="margin:6px 0 12px">
-          <b style="color:${Math.abs(scarto) < 0.7 ? 'var(--ok)' : Math.abs(scarto) < 1.6 ? 'var(--attesa)' : 'var(--allerta)'}">${segno}${g1(scarto)} °C</b>
-          <span style="color:var(--ink-2); font-size:13px">${giudizio}</span>
-        </div>
-        <div class="misura-lato" style="min-width:0">
-          <div class="riga-dato"><span>modelli più freddo e più caldo</span><b>${g1(minM)} / ${g1(maxM)} °C</b></div>
-          <div class="riga-dato"><span>probabilità di pioggia ora</span><b>${pc(adesso.prob)}</b></div>
-          <div class="riga-dato"><span>modelli che danno pioggia</span><b>${adesso.bagnate.length} su ${adesso.nFamiglie}</b></div>
-          <div class="riga-dato"><span>correzione già applicata</span><b>${g1(media(adesso.dettaglio.map(d => d.corr)))} °C</b></div>
-        </div>
-        <div class="fonte">Lo scarto qui sopra è la differenza fra quello che i modelli dicevano per quest'ora e quello che le stazioni stanno misurando davvero. Viene usato per riallineare le ore successive.</div>
+  /* colonna di destra: la giornata in cinque righe */
+  const oggi = giorni[0];
+  if (oggi) {
+    /* L arco copre la giornata da minima a massima, e la pallina dice dove ci
+       troviamo adesso dentro quell escursione. */
+    const campo = Math.max(0.5, oggi.tmax - oggi.tmin);
+    const dove = tOss === undefined ? null : chiudi((tOss - oggi.tmin) / campo, 0, 1) * 100;
+    $('#eroe-oggi').innerHTML = `
+      <span class="etichetta">Oggi a Pedrengo</span>
+      <div class="arco">
+        <span class="binario"></span>
+        <span class="tratto" style="left:0; right:0"></span>
+        ${dove === null ? '' : `<span class="segno" style="left:${dove.toFixed(1)}%"></span>
+        ${(dove >= 20 && dove <= 80) ? `<span class="adesso-et" style="left:${dove.toFixed(1)}%">ora</span>` : ''}`}
+        <span class="cap" style="left:0; color:var(--blu)">${g1(oggi.tmin)}</span>
+        <span class="cap" style="right:0; color:var(--arancio)">${g1(oggi.tmax)}</span>
+      </div>
+      <div class="oggi-righe">
+        <div class="oggi-riga"><span>probabilità di pioggia</span><b>${pc(oggi.prob)}${oggi.mm >= 0.15 ? ' · ' + g1(oggi.mm) + ' mm' : ''}</b></div>
+        <div class="oggi-riga"><span>caduta finora</span><b>${g1(pioggiaOggi)} mm</b></div>
+        <div class="oggi-riga"><span>umidità e vento</span><b>${ultimaU ? g0(ultimaU.v) + '%' : '-'}${ultimoV ? ' · ' + g1(ultimoV.v) + ' m/s' : ''}</b></div>
+        <div class="oggi-riga"><span>accordo fra i centri</span><b><span class="chip ${oggi.fiducia}">${oggi.fiducia}</span></b></div>
       </div>`;
-  } else {
-    destra = `<div class="riquadro"><p class="vuoto">Confronto non disponibile: manca la lettura di questa ora.</p></div>`;
   }
-  box.innerHTML = sinistra + destra;
+
+  /* striscia delle prossime dodici ore */
+  const prossime = consenso.slice(1, 13);
+  $('#eroe-strip').innerHTML = prossime.map((o) => {
+    const [ico] = tipoTempo(o);
+    const prob = Math.round(o.prob * 100);
+    return `<div class="cella-ora${eNotte(o.k) ? ' buio' : ''}">
+      <span class="qora">${oraDi(o.k).slice(0, 2)}</span>
+      ${icona(ico, 20)}
+      <span class="qt">${g1(o.t)}°</span>
+      <span class="qp${prob < 15 ? ' zero' : ''}">${prob}%</span>
+    </div>`;
+  }).join('');
+
+  const nStazioni = STATO.stazioniAttive || 0;
+  $('#eroe-fonte').innerHTML = `Temperatura misurata da ${nStazioni} stazioni ARPA Lombardia attorno al paese, pesate per distanza, riportate alla quota di Pedrengo e ripulite dallo scarto sistematico della loro posizione${STATO.offsetSito !== null ? ' (' + (STATO.offsetSito > 0 ? '+' : '') + g1(STATO.offsetSito) + ' °C)' : ''}.${ultimaT ? ' Ultima lettura delle ' + ultimaT.ora + '.' : ''} Lo scarto qui sopra viene riusato per riallineare le ore successive.`;
 }
 
 /* ---------------- nowcasting ---------------- */
@@ -186,6 +212,8 @@ function rendiNowcast() {
 
   const passi = n.prossime.slice(0, 12);
   const massimo = Math.max(0.25, ...passi.map(p => p.mm));
+  // le colonne servono solo se c e qualcosa da mostrare, altrimenti sono dodici scatole vuote
+  const valeLaPena = passi.some(p => p.mm > 0.02);
   const barre = passi.map((p, i) => `
     <div class="quarto" title="${p.etichetta}: ${g1(p.mm)} mm nel quarto d'ora">
       <div class="colonna"><i style="height:${p.mm > 0.005 ? Math.max(2, Math.round(p.mm / massimo * 52)) : 0}px"></i></div>
@@ -216,7 +244,7 @@ function rendiNowcast() {
       <span class="testo">
         <h3>${n.titolo}</h3>
         <p>${n.dettaglio}</p>
-        ${passi.length ? `<div class="quarti">${barre}</div>
+        ${(passi.length && valeLaPena) ? `<div class="quarti">${barre}</div>
           <p style="margin-top:8px; font-size:12px; color:var(--ink-3)">Millimetri per quarto d'ora, consenso di ${MODELLI_FINI.length} modelli ad alta risoluzione. ${n.mmDueOre >= 0.05 ? 'Totale atteso nelle prossime due ore ' + g1(n.mmDueOre) + ' mm.' : ''}</p>` : ''}
         <div class="riga-radar">${radarTesto}${pluvio.ultimeTreOre > 0.05 ? ` Nelle ultime tre ore i pluviometri hanno raccolto ${g1(pluvio.ultimeTreOre)} mm.` : ''}</div>
       </span>
@@ -326,31 +354,53 @@ function disegnaOre() {
   const dati = STATO.consenso.slice(0, n);
   if (!dati.length) return;
 
-  const ML = 32, MR = 8, MT = 16;
-  const HT = stretto ? 108 : 132, GAP = 30, HP = stretto ? 52 : 62, HX = 22;
-  const H = MT + HT + GAP + HP + HX;
+  const ML = 32, MR = 8, MT = 6;
+  const HIC = 26;                                   // fascia delle icone del cielo
+  const HT = stretto ? 102 : 126, GAP = 30, HP = stretto ? 52 : 62, HX = 22;
+  const TOP = MT + HIC;
+  const H = TOP + HT + GAP + HP + HX;
   const larg = (W - ML - MR) / n;
   const x = i => ML + (i + 0.5) * larg;
+  const bordo = i => ML + i * larg;
 
   const tutti = dati.flatMap(d => [d.p10, d.p90]);
   let tMin = Math.min(...tutti), tMax = Math.max(...tutti);
   const pad = Math.max(0.8, (tMax - tMin) * 0.12);
   tMin = Math.floor(tMin - pad); tMax = Math.ceil(tMax + pad);
-  const y = v => MT + HT - ((v - tMin) / (tMax - tMin)) * HT;
-  const yP = p => MT + HT + GAP + HP - p * HP;
+  const y = v => TOP + HT - ((v - tMin) / (tMax - tMin)) * HT;
+  const yP = p => TOP + HT + GAP + HP - p * HP;
 
   let s = '';
 
-  // notte
-  let inizio = null;
-  dati.forEach((d, i) => {
-    const h = +d.k.slice(11, 13), notte = h >= 20 || h < 6;
-    if (notte && inizio === null) inizio = i;
-    if ((!notte || i === dati.length - 1) && inizio !== null) {
-      const a = ML + inizio * larg, b = ML + (notte ? i + 1 : i) * larg;
-      s += `<rect class="notte" x="${a.toFixed(1)}" y="${MT}" width="${(b - a).toFixed(1)}" height="${HT}"/>`;
-      inizio = null;
+  /* Buio vero, da tramonto ad alba, non un orario fisso. Le fasce sono
+     disegnate con posizione frazionaria, cosi il bordo cade sull ora giusta. */
+  const t0 = dataDaChiave(dati[0].k).getTime();
+  const giorniVisti = [...new Set(dati.map(d => d.k.slice(0, 10)))];
+  const fasce = [];
+  for (const g of giorniVisti) {
+    const sole = STATO.sole && STATO.sole[g];
+    const base = (dataDaChiave(g + 'T00').getTime() - t0) / 3600e3;
+    if (sole) {
+      fasce.push([base, base + sole.alba]);
+      fasce.push([base + sole.tramonto, base + 24]);
+    } else {
+      fasce.push([base, base + 6]);
+      fasce.push([base + 20, base + 24]);
     }
+  }
+  for (const [da, a] of fasce) {
+    const i0 = Math.max(0, da), i1 = Math.min(n, a);
+    if (i1 <= i0) continue;
+    s += `<rect class="notte" x="${bordo(i0).toFixed(1)}" y="${TOP}" width="${(bordo(i1) - bordo(i0)).toFixed(1)}" height="${HT}"/>`;
+  }
+
+  // icone del cielo sopra il grafico, una ogni tre ore
+  const passoIcona = stretto ? 6 : 3;
+  const scalaIcona = stretto ? 0.72 : 0.82;
+  dati.forEach((d, i) => {
+    if (+d.k.slice(11, 13) % passoIcona !== 0) return;
+    const [ico] = tipoTempo(d);
+    s += `<g class="icona-grafico" transform="translate(${(x(i) - 12 * scalaIcona).toFixed(1)},${MT}) scale(${scalaIcona})">${corpoIcona(ico)}</g>`;
   });
 
   // griglia temperatura
@@ -396,14 +446,28 @@ function disegnaOre() {
     const h = +d.k.slice(11, 13);
     if (h === 0 && i > 0) {
       const px = (ML + i * larg).toFixed(1);
-      s += `<line class="gx" x1="${px}" y1="${MT}" x2="${px}" y2="${MT + HT + GAP + HP}"/>`;
-      s += `<text class="et-giorno" x="${(+px + 5).toFixed(1)}" y="${MT + 11}">${nomeGiorno(d.k.slice(0, 10), dati[0].k.slice(0, 10)).slice(0, 3)}</text>`;
+      s += `<line class="gx" x1="${px}" y1="${TOP}" x2="${px}" y2="${TOP + HT + GAP + HP}"/>`;
+      s += `<text class="et-giorno" x="${(+px + 5).toFixed(1)}" y="${TOP + 11}">${nomeGiorno(d.k.slice(0, 10), dati[0].k.slice(0, 10)).slice(0, 3)}</text>`;
     }
     if (h % ogni === 0) s += `<text class="et-asse" x="${x(i).toFixed(1)}" y="${H - 6}" text-anchor="middle">${String(h).padStart(2, '0')}</text>`;
   });
 
-  s += `<rect id="cattura-ore" x="${ML}" y="${MT}" width="${W - ML - MR}" height="${HT + GAP + HP}" fill="transparent" style="cursor:crosshair"/>`;
-  s += `<line id="mirino-ore" class="mirino" x1="0" y1="${MT}" x2="0" y2="${MT + HT + GAP + HP}" style="opacity:0"/>`;
+  // alba e tramonto scritti alla base, dove cade il cambio di fascia
+  for (const g of giorniVisti) {
+    const sole = STATO.sole && STATO.sole[g];
+    if (!sole) continue;
+    const base = (dataDaChiave(g + 'T00').getTime() - t0) / 3600e3;
+    for (const [ore, testo] of [[sole.alba, sole.albaTesto], [sole.tramonto, sole.tramontoTesto]]) {
+      const idx = base + ore;
+      if (idx < 0.6 || idx > n - 0.6) continue;
+      const px = bordo(idx);
+      s += `<line class="gx-lieve" x1="${px.toFixed(1)}" y1="${TOP}" x2="${px.toFixed(1)}" y2="${TOP + HT}"/>`;
+      if (!stretto) s += `<text class="sole-et" x="${px.toFixed(1)}" y="${(TOP + HT + 11).toFixed(1)}" text-anchor="middle">${testo}</text>`;
+    }
+  }
+
+  s += `<rect id="cattura-ore" x="${ML}" y="${TOP}" width="${W - ML - MR}" height="${HT + GAP + HP}" fill="transparent" style="cursor:crosshair"/>`;
+  s += `<line id="mirino-ore" class="mirino" x1="0" y1="${TOP}" x2="0" y2="${TOP + HT + GAP + HP}" style="opacity:0"/>`;
 
   box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Temperatura e probabilità di pioggia ora per ora">${s}</svg>
     <div class="suggerimento" id="sug-ore"></div>`;
@@ -458,6 +522,7 @@ function rendiGiorni() {
     <button class="giorno" aria-expanded="false" data-i="${idx}">
       <span class="g-data"><b>${nomeGiorno(g.data, giorni[0].data)}</b><span>${dataBreve(g.data)}</span></span>
       <span class="g-simbolo">${icona(ic, 21)}<span>${testo}</span></span>
+      <span class="g-curva">${curvaGiorno(g)}</span>
       <span class="g-barra">
         <span class="traccia"></span>
         <span class="arco" style="left:${a.toFixed(1)}%; width:${Math.max(3, b - a).toFixed(1)}%"></span>
@@ -505,6 +570,18 @@ function rendiGiorni() {
       d.hidden = aperto;
     });
   });
+}
+
+/* Una curva minuscola con l andamento della temperatura nella giornata: dice
+   in un colpo d occhio se il caldo arriva presto, tardi, o se la giornata e piatta. */
+function curvaGiorno(g) {
+  const v = g.ore.map(o => o.t);
+  if (v.length < 6) return '';
+  const W = 56, H = 22, min = Math.min(...v), max = Math.max(...v), campo = Math.max(0.5, max - min);
+  const punti = v.map((x, i) => `${(i / (v.length - 1) * (W - 2) + 1).toFixed(1)},${(H - 3 - ((x - min) / campo) * (H - 6)).toFixed(1)}`);
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-hidden="true">
+    <polyline points="${punti.join(' ')}" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round" opacity=".75"/>
+  </svg>`;
 }
 
 function nomeFamiglia(f) {
@@ -950,6 +1027,9 @@ async function avvia() {
       hourly: 'cape', models: 'icon_seamless,ecmwf_ifs025,gfs_seamless,italia_meteo_arpae_icon_2i', forecast_days: 7
     }), 30000).catch(() => null),
     // l archivio sta accanto alla pagina: lo riempie ogni notte il lavoro programmato
+    scarica(urlOpenMeteo('https://api.open-meteo.com/v1/forecast', {
+      daily: 'sunrise,sunset', forecast_days: 8, past_days: 1
+    }), 20000).catch(() => null),
     scarica('dati/taratura.json', 10000).catch(() => null),
     scarica('dati/verifiche.json', 10000).catch(() => null)
   ];
@@ -1048,7 +1128,7 @@ async function avvia() {
   /* L archivio guarda indietro novantadue giorni invece di ventuno, e per la
      pioggia la differenza e enorme: in tre settimane ci sono sei o sette ore
      piovose, in tre mesi una ottantina. Se c e, la sua taratura vince. */
-  const archivio = val(6);
+  const archivio = val(7);
   if (archivio && Array.isArray(archivio.bins)) {
     const suoi = somma(archivio.bins.map(b => b.n || 0));
     const miei = somma(STATO.bins.map(b => b.n || 0));
@@ -1057,7 +1137,7 @@ async function avvia() {
       STATO.taraturaArchivio = archivio;
     }
   }
-  STATO.archivioVerifiche = val(7);
+  STATO.archivioVerifiche = val(8);
   STATO.verifica = verificaStorica(prev, oss);
   STATO.fascia = taraturaFascia(ricostruisciPassato(prev, oss, nuvoleRif, STATO.pagella));
   STATO.sfasamenti = sfasamentoPioggia(prev, oss);
@@ -1077,6 +1157,21 @@ async function avvia() {
       if (v.length) cape.set(t.slice(0, 13), Math.max(...v));
     });
   }
+
+  const sole = {};
+  const rSole = val(6);
+  if (rSole && rSole.daily && rSole.daily.time) {
+    rSole.daily.time.forEach((g, i) => {
+      const alba = rSole.daily.sunrise[i], tram = rSole.daily.sunset[i];
+      if (!alba || !tram) return;
+      sole[g] = {
+        alba: +alba.slice(11, 13) + (+alba.slice(14, 16)) / 60,
+        tramonto: +tram.slice(11, 13) + (+tram.slice(14, 16)) / 60,
+        albaTesto: alba.slice(11, 16), tramontoTesto: tram.slice(11, 16)
+      };
+    });
+  }
+  STATO.sole = sole;
 
   const adesso = chiaveOra(new Date());
   STATO.det = det; STATO.ens = ens; STATO.oss = oss;
@@ -1114,6 +1209,7 @@ async function avvia() {
     if (!perSensore[s.id] || !perSensore[s.id].size) continue;
     if (!attive.some(a => a.nome === s.nome)) attive.push(s);
   }
+  STATO.stazioniAttive = attive.filter(s => s.tipo === 'temp').length;
   if (attive.length) {
     $('#metodo-stazioni').textContent = attive
       .sort((a, b) => a.km - b.km)
@@ -1121,7 +1217,7 @@ async function avvia() {
       .join(', ');
   }
 
-  rendiAdesso();
+  rendiEroe();
   rendiBollettino();
   disegnaOre();
   rendiGiorni();
@@ -1136,6 +1232,8 @@ async function avvia() {
 
   if (memoria && memoria.db) { scriviMemoria(memoria.db).catch(() => { }); }
 
+  attivaNavigazione();
+
   // il nowcasting parte dopo il resto: usa il radar e non deve far aspettare la pagina
   avviaNowcast();
   setInterval(avviaNowcast, 600000);
@@ -1145,7 +1243,7 @@ async function avvia() {
     clearTimeout(attesa);
     attesa = setTimeout(() => { disegnaOre(); disegnaVentaglio(); }, 220);
   });
-  setInterval(() => { if (STATO.oss) rendiAdesso(); }, 300000);
+  setInterval(() => { if (STATO.oss) rendiEroe(); }, 300000);
 }
 
 avvia().catch(e => {
@@ -1153,3 +1251,26 @@ avvia().catch(e => {
   $('#tela-ore').innerHTML = '<div class="errore">Qualcosa è andato storto nel calcolo: ' + (e && e.message ? e.message : 'errore sconosciuto') + '. Ricarica la pagina.</div>';
   console.error(e);
 });
+
+
+/* La navigazione segue la lettura: si accende la voce della sezione che occupa
+   la parte alta della finestra. */
+function attivaNavigazione() {
+  const voci = [...document.querySelectorAll('.nav a')];
+  const sezioni = voci.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  if (!sezioni.length) return;
+  let inCorso = false;
+  const aggiorna = () => {
+    inCorso = false;
+    const soglia = 140;
+    let attiva = 0;
+    sezioni.forEach((s, i) => { if (s.getBoundingClientRect().top <= soglia) attiva = i; });
+    voci.forEach((a, i) => a.classList.toggle('attiva', i === attiva));
+  };
+  window.addEventListener('scroll', () => {
+    if (inCorso) return;
+    inCorso = true;
+    requestAnimationFrame(aggiorna);
+  }, { passive: true });
+  aggiorna();
+}
