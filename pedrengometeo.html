@@ -12,40 +12,56 @@ img{max-width:100%}
 :root{
   padding-top:env(safe-area-inset-top, 0px);
   padding-bottom:env(safe-area-inset-bottom, 0px);
-  --paper:#EDF0F3; --surface:#FFFFFF; --surface-2:#F6F8FA; --surface-3:#E7ECF0;
-  --ink:#0F1D28; --ink-2:#3B5165; --ink-3:#6C8398;
-  --line:#D6DEE5; --line-2:#BFCAD4;
+
+  /* fondo e superfici, con una punta di blu nei grigi perche l accento e blu */
+  --paper:#E9EDF1; --surface:#FFFFFF; --surface-2:#F4F7F9; --surface-3:#E3E9EE;
+  --ink:#0D1A24; --ink-2:#3A4F62; --ink-3:#6B8296;
+  --line:#D3DCE3; --line-2:#BCC8D2;
+
+  /* le due tinte dei dati, verificate per daltonismo e contrasto */
   --blu:#1E6FA8; --arancio:#C4561D; --viola:#6A4C93;
+  /* stato, tenuto separato dalle tinte dei dati */
   --ok:#12795A; --attesa:#8A6100; --allerta:#A32B21;
+
   --blu-fill:rgba(30,111,168,.13); --blu-fill-2:rgba(30,111,168,.26);
   --ar-fill:rgba(196,86,29,.14);
-  --ombra:0 1px 2px rgba(15,29,40,.06), 0 6px 18px rgba(15,29,40,.05);
+  --notte-fill:rgba(13,26,36,.055);
+
+  --ombra:0 1px 2px rgba(13,26,36,.05), 0 4px 14px rgba(13,26,36,.045);
+  --ombra-alta:0 2px 4px rgba(13,26,36,.06), 0 14px 40px rgba(13,26,36,.09);
+
   --ui:"Archivo","Helvetica Neue",Helvetica,Arial,sans-serif;
   --prosa:"Newsreader",Georgia,"Times New Roman",serif;
   --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-  --r:10px;
+
+  --r:12px; --r-s:8px;
+  --s1:6px; --s2:10px; --s3:16px; --s4:24px; --s5:36px; --s6:52px;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --paper:#0B131A; --surface:#111E27; --surface-2:#16242E; --surface-3:#1D2F3A;
-    --ink:#E2ECF3; --ink-2:#A6BBCA; --ink-3:#78909F;
-    --line:#22333F; --line-2:#2F4552;
+    --paper:#080F15; --surface:#101C25; --surface-2:#15232D; --surface-3:#1D2E3A;
+    --ink:#E4EEF5; --ink-2:#A6BBCA; --ink-3:#7A93A6;
+    --line:#203039; --line-2:#2C424F;
     --blu:#3F97CE; --arancio:#D06E38; --viola:#9478C4;
     --ok:#3FA57A; --attesa:#D2A03C; --allerta:#E08279;
     --blu-fill:rgba(63,151,206,.17); --blu-fill-2:rgba(63,151,206,.32);
     --ar-fill:rgba(208,110,56,.18);
-    --ombra:0 1px 2px rgba(0,0,0,.35), 0 6px 18px rgba(0,0,0,.28);
+    --notte-fill:rgba(255,255,255,.045);
+    --ombra:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+    --ombra-alta:0 2px 6px rgba(0,0,0,.45), 0 16px 44px rgba(0,0,0,.42);
   }
 }
 :root[data-theme="dark"]{
-  --paper:#0B131A; --surface:#111E27; --surface-2:#16242E; --surface-3:#1D2F3A;
-  --ink:#E2ECF3; --ink-2:#A6BBCA; --ink-3:#78909F;
-  --line:#22333F; --line-2:#2F4552;
+  --paper:#080F15; --surface:#101C25; --surface-2:#15232D; --surface-3:#1D2E3A;
+  --ink:#E4EEF5; --ink-2:#A6BBCA; --ink-3:#7A93A6;
+  --line:#203039; --line-2:#2C424F;
   --blu:#3F97CE; --arancio:#D06E38; --viola:#9478C4;
   --ok:#3FA57A; --attesa:#D2A03C; --allerta:#E08279;
   --blu-fill:rgba(63,151,206,.17); --blu-fill-2:rgba(63,151,206,.32);
   --ar-fill:rgba(208,110,56,.18);
-  --ombra:0 1px 2px rgba(0,0,0,.35), 0 6px 18px rgba(0,0,0,.28);
+  --notte-fill:rgba(255,255,255,.045);
+  --ombra:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+  --ombra-alta:0 2px 6px rgba(0,0,0,.45), 0 16px 44px rgba(0,0,0,.42);
 }
 *{box-sizing:border-box}
 body{
@@ -53,126 +69,235 @@ body{
   font-family:var(--ui); font-size:15px; line-height:1.5;
   -webkit-font-smoothing:antialiased;
 }
-.wrap{max-width:1080px; margin:0 auto; padding-left:18px; padding-right:18px; padding-block:0 60px}
-h1,h2,h3{margin:0; text-wrap:balance; font-weight:700; letter-spacing:-.01em}
+.wrap{max-width:1100px; margin:0 auto; padding-left:18px; padding-right:18px; padding-block:0 var(--s6)}
+h1,h2,h3,h4{margin:0; text-wrap:balance; font-weight:700; letter-spacing:-.018em}
 p{margin:0}
 a{color:var(--blu)}
 .mono{font-family:var(--mono); font-variant-numeric:tabular-nums}
+.tnum{font-variant-numeric:tabular-nums}
 
+/* ---------- barra fissa ---------- */
 .top{
-  position:sticky; top:env(safe-area-inset-top,0px); z-index:40;
+  position:sticky; top:env(safe-area-inset-top, 0px); z-index:50;
   background:var(--paper); border-bottom:1px solid var(--line);
 }
-.top-in{max-width:1080px; margin:0 auto; padding:9px 18px; display:flex; align-items:center; gap:14px; flex-wrap:wrap}
-.marchio{display:flex; align-items:baseline; gap:8px; margin-right:auto}
-.marchio b{font-size:17px; letter-spacing:-.02em}
-.marchio span{font-family:var(--mono); font-size:10.5px; color:var(--ink-3); letter-spacing:.09em; text-transform:uppercase}
-.top-ora{display:flex; align-items:center; gap:7px; font-family:var(--mono); font-size:12.5px; color:var(--ink-2)}
+.top-in{max-width:1100px; margin:0 auto; padding:9px 18px; display:flex; align-items:center; gap:var(--s3); flex-wrap:nowrap}
+.marchio{display:flex; align-items:baseline; gap:8px; margin-right:auto; min-width:0}
+.marchio b{font-size:16.5px; letter-spacing:-.025em; white-space:nowrap}
+.marchio span{font-family:var(--mono); font-size:10px; color:var(--ink-3); letter-spacing:.1em; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+@media (max-width:620px){.marchio span{display:none}}
+.top-ora{display:flex; align-items:center; gap:7px; font-family:var(--mono); font-size:12px; color:var(--ink-3); white-space:nowrap}
+@media (max-width:520px){.top-ora span:last-child{display:none}}
 .pallino{width:7px; height:7px; border-radius:50%; background:var(--ink-3); flex:none}
-.pallino.vivo{background:var(--ok); box-shadow:0 0 0 3px color-mix(in srgb, var(--ok) 22%, transparent)}
+.pallino.vivo{background:var(--ok); box-shadow:0 0 0 3px color-mix(in srgb, var(--ok) 20%, transparent)}
 .pallino.rotto{background:var(--allerta)}
-.top-t{font-family:var(--mono); font-weight:600; font-size:15px; color:var(--ink)}
+.top-t{font-family:var(--mono); font-weight:600; font-size:15px; color:var(--ink); white-space:nowrap}
 
-.testata{padding-block:34px 26px; border-bottom:1px solid var(--line)}
-.testata h1{font-size:clamp(29px,6.2vw,45px); line-height:1.03; letter-spacing:-.033em}
-.testata .sotto{margin-top:11px; color:var(--ink-2); font-size:14.5px; max-width:64ch}
-.coord{margin-top:13px; display:flex; gap:7px; flex-wrap:wrap}
+/* ---------- navigazione di sezione ---------- */
+.nav{
+  position:sticky; top:calc(env(safe-area-inset-top, 0px) + 41px); z-index:45;
+  background:color-mix(in srgb, var(--paper) 94%, transparent);
+  backdrop-filter:saturate(1.4) blur(8px);
+  border-bottom:1px solid var(--line);
+}
+.nav-in{max-width:1100px; margin:0 auto; padding:0 18px; display:flex; gap:2px; overflow-x:auto; scrollbar-width:none}
+.nav-in::-webkit-scrollbar{display:none}
+.nav a{
+  font-family:var(--mono); font-size:11px; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--ink-3); text-decoration:none; padding:11px 11px 9px; white-space:nowrap;
+  border-bottom:2px solid transparent;
+}
+.nav a:hover{color:var(--ink)}
+.nav a.attiva{color:var(--blu); border-bottom-color:var(--blu)}
+.nav a:focus-visible{outline:2px solid var(--blu); outline-offset:-3px; border-radius:3px}
+
+/* ---------- testata ---------- */
+.testata{padding-block:var(--s5) var(--s4)}
+.testata h1{font-size:clamp(25px,4.6vw,35px); line-height:1.08; letter-spacing:-.032em; max-width:19ch}
+.testata .sotto{margin-top:var(--s2); color:var(--ink-2); font-size:14px; max-width:60ch; line-height:1.55}
+.coord{margin-top:var(--s3); display:flex; gap:6px; flex-wrap:wrap}
 .tag{
-  font-family:var(--mono); font-size:11px; letter-spacing:.04em; color:var(--ink-2);
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.04em; color:var(--ink-2);
   border:1px solid var(--line-2); border-radius:999px; padding:3px 9px; background:var(--surface);
 }
-section{padding-block:34px; border-bottom:1px solid var(--line)}
-section:last-of-type{border-bottom:0}
+.avanzamento{display:flex; gap:4px; margin-top:var(--s3); max-width:420px}
+.avanzamento i{height:3px; flex:1; background:var(--line); border-radius:2px; transition:background .35s}
+.avanzamento i.fatto{background:var(--blu)}
+
+/* ---------- blocco di apertura ---------- */
+.eroe{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--r);
+  box-shadow:var(--ombra-alta); overflow:hidden; margin-bottom:var(--s3);
+}
+@media (prefers-reduced-motion: no-preference){
+  .eroe{animation:sali .45s cubic-bezier(.2,.7,.3,1) both}
+}
+@keyframes sali{from{transform:translateY(7px); opacity:.55} to{transform:none; opacity:1}}
+
+.eroe-testa{display:grid; grid-template-columns:minmax(0,1.25fr) minmax(0,1fr); gap:var(--s4); padding:var(--s4)}
+@media (max-width:760px){.eroe-testa{grid-template-columns:1fr; gap:var(--s3); padding:var(--s3)}}
+
+.ora-grande{display:flex; align-items:flex-start; gap:var(--s3); flex-wrap:wrap}
+.cifra{
+  font-family:var(--mono); font-weight:600; font-size:clamp(50px,12vw,76px);
+  line-height:.86; letter-spacing:-.05em; font-variant-numeric:tabular-nums;
+}
+.cifra sup{font-size:.3em; font-weight:500; color:var(--ink-3); letter-spacing:0; vertical-align:top; top:.5em; position:relative}
+.ora-lato{display:flex; flex-direction:column; gap:5px; padding-top:4px}
+.ora-desc{display:flex; align-items:center; gap:8px; font-size:15px; color:var(--ink); font-weight:600}
+.ora-scarto{font-family:var(--mono); font-size:12.5px; color:var(--ink-3); line-height:1.45}
+.ora-scarto b{color:var(--ink-2); font-weight:500}
+.etichetta{
+  font-family:var(--mono); font-size:10px; letter-spacing:.13em; text-transform:uppercase;
+  color:var(--ink-3); display:block; margin-bottom:var(--s1);
+}
+
+.oggi{display:flex; flex-direction:column; gap:var(--s2); justify-content:center}
+.arco{position:relative; height:40px; margin-top:4px}
+.arco .binario{position:absolute; left:0; right:0; top:24px; height:4px; background:var(--surface-3); border-radius:3px}
+.arco .tratto{position:absolute; top:23px; height:6px; border-radius:3px; background:linear-gradient(90deg,var(--blu),var(--arancio))}
+.arco .cap{position:absolute; top:0; line-height:1; font-family:var(--mono); font-size:13px; font-weight:600; font-variant-numeric:tabular-nums}
+.arco .segno{
+  position:absolute; top:18px; width:10px; height:10px; border-radius:50%;
+  background:var(--surface); border:3px solid var(--ink); transform:translateX(-50%); box-shadow:0 0 0 2px var(--surface);
+}
+.arco .adesso-et{position:absolute; top:1px; line-height:1; font-family:var(--mono); font-size:10px; color:var(--ink-3); transform:translateX(-50%); letter-spacing:.06em}
+.oggi-righe{display:flex; flex-direction:column; gap:3px}
+.oggi-riga{display:flex; justify-content:space-between; align-items:baseline; gap:12px; font-size:13px; border-bottom:1px dotted var(--line); padding-bottom:4px}
+.oggi-riga:last-child{border-bottom:0}
+.oggi-riga span{color:var(--ink-3)}
+.oggi-riga b{font-family:var(--mono); font-weight:500; font-variant-numeric:tabular-nums; color:var(--ink)}
+
+/* verdetto delle prossime ore, dentro il blocco di apertura */
+.verdetto{
+  display:flex; gap:var(--s3); align-items:flex-start;
+  padding:var(--s3) var(--s4); border-top:1px solid var(--line); background:var(--surface-2);
+  border-left:3px solid var(--ink-3);
+}
+@media (max-width:760px){.verdetto{padding:var(--s3)}}
+.verdetto.piove{border-left-color:var(--blu)}
+.verdetto.arrivo{border-left-color:var(--attesa)}
+.verdetto.asciutto{border-left-color:var(--ok)}
+.verdetto .testo{flex:1; min-width:0}
+.verdetto h3{font-size:16px; margin-bottom:3px; letter-spacing:-.018em}
+.verdetto p{color:var(--ink-2); font-size:13.5px; line-height:1.5}
+.verdetto .icona-grande{color:var(--ink-2); flex:none; padding-top:1px}
+.verdetto.piove .icona-grande{color:var(--blu)}
+.verdetto.arrivo .icona-grande{color:var(--attesa)}
+.verdetto.asciutto .icona-grande{color:var(--ok)}
+.quarti{display:flex; gap:3px; margin-top:var(--s2); align-items:flex-end; overflow-x:auto; padding-bottom:3px; scrollbar-width:thin}
+.quarto{flex:1 1 22px; display:flex; flex-direction:column; align-items:center; gap:4px; min-width:20px}
+.quarto .colonna{width:100%; height:38px; display:flex; align-items:flex-end; background:var(--surface-3); border-radius:3px; overflow:hidden}
+.quarto .colonna i{display:block; width:100%; background:var(--blu); border-radius:2px 2px 0 0}
+.quarto small{font-family:var(--mono); font-size:9px; color:var(--ink-3); white-space:nowrap}
+.riga-radar{margin-top:var(--s2); font-size:12px; color:var(--ink-3); font-family:var(--mono); line-height:1.5}
+
+/* striscia delle prossime ore */
+.striscia{display:flex; overflow-x:auto; border-top:1px solid var(--line); scrollbar-width:thin}
+.cella-ora{
+  flex:1 0 66px; display:flex; flex-direction:column; align-items:center; gap:5px;
+  padding:var(--s3) 4px; border-right:1px solid var(--line); text-align:center; min-width:66px;
+}
+.cella-ora:last-child{border-right:0}
+.cella-ora.buio{background:var(--surface-2)}
+.cella-ora .qora{font-family:var(--mono); font-size:11px; color:var(--ink-3); letter-spacing:.02em}
+
+.cella-ora .qt{font-family:var(--mono); font-size:15px; font-weight:600; font-variant-numeric:tabular-nums}
+.cella-ora .qp{font-family:var(--mono); font-size:10.5px; color:var(--blu); min-height:14px}
+.cella-ora .qp.zero{color:transparent}
+.cella-ora svg{color:var(--ink-2)}
+.nota-fonte{font-size:12px; color:var(--ink-3); line-height:1.5; max-width:78ch}
+
+/* ---------- sezioni ---------- */
+section{padding-block:var(--s5); border-top:1px solid var(--line); scroll-margin-top:96px}
+section:first-of-type{border-top:0; padding-top:0}
 .occhiello{
-  font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase;
-  color:var(--ink-3); display:flex; align-items:center; gap:10px; margin-bottom:6px;
+  font-family:var(--mono); font-size:10px; letter-spacing:.15em; text-transform:uppercase;
+  color:var(--ink-3); display:flex; align-items:center; gap:var(--s2); margin-bottom:var(--s1);
 }
 .occhiello::after{content:""; flex:1; height:1px; background:var(--line)}
-h2{font-size:22px; letter-spacing:-.02em; margin-bottom:5px}
-.guida{color:var(--ink-2); font-size:13.5px; max-width:72ch; margin-bottom:18px}
+h2{font-size:clamp(19px,2.6vw,23px); letter-spacing:-.024em; margin-bottom:var(--s1)}
+.guida{color:var(--ink-2); font-size:13.5px; max-width:74ch; margin-bottom:var(--s4); line-height:1.55}
 
-.adesso{display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); gap:16px; align-items:stretch}
-@media (max-width:780px){.adesso{grid-template-columns:1fr}}
-.riquadro{background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:18px; box-shadow:var(--ombra)}
-.misura{display:flex; align-items:flex-start; gap:20px; flex-wrap:wrap}
-.grossa{font-family:var(--mono); font-weight:600; font-size:clamp(42px,10.5vw,62px); line-height:.92; letter-spacing:-.04em}
-.grossa small{font-size:.35em; font-weight:500; color:var(--ink-3); letter-spacing:0}
-.misura-lato{display:flex; flex-direction:column; gap:4px; padding-top:5px; min-width:158px; flex:1}
-.riga-dato{display:flex; justify-content:space-between; gap:14px; font-size:13px; border-bottom:1px dotted var(--line); padding-bottom:3px}
-.riga-dato:last-child{border-bottom:0}
-.riga-dato span:first-child{color:var(--ink-3)}
-.riga-dato b{font-family:var(--mono); font-weight:500}
-.fonte{margin-top:14px; padding-top:11px; border-top:1px solid var(--line); font-size:12px; color:var(--ink-3); line-height:1.45}
-.scarto b{font-family:var(--mono); font-size:20px; font-weight:600}
-
-.bollettino{
-  font-family:var(--prosa); font-size:clamp(17px,2.3vw,19.5px); line-height:1.56; color:var(--ink); max-width:64ch;
+/* spartiacque fra la consultazione e il motore */
+.spartiacque{
+  margin-top:var(--s6); padding-top:var(--s4); border-top:2px solid var(--line-2);
+  display:flex; align-items:baseline; gap:var(--s3); flex-wrap:wrap;
 }
-.bollettino p+p{margin-top:12px}
-.firma{margin-top:16px; font-family:var(--mono); font-size:11px; color:var(--ink-3); letter-spacing:.05em; text-transform:uppercase}
+.spartiacque h2{font-size:clamp(20px,3vw,26px); margin:0}
+.spartiacque p{color:var(--ink-3); font-size:13.5px; max-width:56ch}
 
-.tela{position:relative; background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:14px 8px 6px; box-shadow:var(--ombra)}
+/* ---------- riquadri e grafici ---------- */
+.riquadro{background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:var(--s3); box-shadow:var(--ombra)}
+.tela{position:relative; background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:var(--s3) var(--s2) var(--s1); box-shadow:var(--ombra)}
 .tela svg{display:block; width:100%; height:auto}
-.legenda{display:flex; gap:16px; flex-wrap:wrap; padding:10px 4px 2px; font-size:12px; color:var(--ink-2)}
+.legenda{display:flex; gap:var(--s3); flex-wrap:wrap; padding:var(--s2) 2px 0; font-size:12px; color:var(--ink-2)}
 .legenda i{display:inline-block; width:14px; height:3px; border-radius:2px; margin-right:6px; vertical-align:middle}
 .legenda .quad{width:11px; height:11px; border-radius:2px}
 .suggerimento{
   position:absolute; pointer-events:none; opacity:0; transition:opacity .1s; left:0; top:0;
-  background:var(--surface); border:1px solid var(--line-2); border-radius:8px;
-  padding:9px 11px; box-shadow:var(--ombra); font-size:12.5px; min-width:190px; z-index:10;
+  background:var(--surface); border:1px solid var(--line-2); border-radius:var(--r-s);
+  padding:9px 11px; box-shadow:var(--ombra-alta); font-size:12.5px; min-width:190px; z-index:10;
 }
 .suggerimento.on{opacity:1}
-.suggerimento h4{margin:0 0 6px; font-size:11.5px; font-family:var(--mono); letter-spacing:.04em; color:var(--ink-3); text-transform:uppercase; font-weight:500}
+.suggerimento h4{margin:0 0 6px; font-size:11px; font-family:var(--mono); letter-spacing:.05em; color:var(--ink-3); text-transform:uppercase; font-weight:500}
 .sug-riga{display:flex; justify-content:space-between; gap:16px; padding:1.5px 0}
-.sug-riga b{font-family:var(--mono); font-weight:500}
+.sug-riga b{font-family:var(--mono); font-weight:500; font-variant-numeric:tabular-nums}
 
+/* ---------- sette giorni ---------- */
 .giorni{display:flex; flex-direction:column; border:1px solid var(--line); border-radius:var(--r); overflow:hidden; background:var(--surface); box-shadow:var(--ombra)}
 .giorno{
-  display:grid; grid-template-columns:100px 92px minmax(110px,1fr) 124px 92px; gap:14px; align-items:center;
-  padding:13px 16px; border:0; border-bottom:1px solid var(--line); cursor:pointer;
+  display:grid; grid-template-columns:96px 84px 64px minmax(96px,1fr) 118px 88px; gap:var(--s3); align-items:center;
+  padding:12px var(--s3); border:0; border-bottom:1px solid var(--line); cursor:pointer;
   width:100%; text-align:left; font:inherit; color:inherit; background:var(--surface);
+  transition:background .12s;
 }
 .giorno:last-of-type{border-bottom:0}
 .giorno:hover{background:var(--surface-2)}
 .giorno[aria-expanded="true"]{background:var(--surface-2)}
 .giorno:focus-visible{outline:2px solid var(--blu); outline-offset:-2px}
-@media (max-width:860px){
-  .giorno{grid-template-columns:1fr auto; grid-template-areas:"data simbolo" "barra barra" "pioggia fiducia"; gap:9px 12px}
-  .g-data{grid-area:data} .g-simbolo{grid-area:simbolo; justify-content:flex-end} .g-barra{grid-area:barra} .g-pioggia{grid-area:pioggia} .g-fiducia{grid-area:fiducia; justify-self:end}
+@media (max-width:900px){
+  .giorno{grid-template-columns:1fr auto; grid-template-areas:"data simbolo" "barra barra" "pioggia fiducia"; gap:8px var(--s3)}
+  .g-data{grid-area:data} .g-simbolo{grid-area:simbolo; justify-content:flex-end}
+  .g-barra{grid-area:barra} .g-pioggia{grid-area:pioggia} .g-fiducia{grid-area:fiducia; justify-self:end}
+  .g-curva{display:none}
 }
-.g-data b{display:block; font-size:14px; text-transform:capitalize}
-.g-data span{font-family:var(--mono); font-size:11.5px; color:var(--ink-3)}
-.g-simbolo{display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--ink-2); min-width:0}
+.g-data b{display:block; font-size:14px; text-transform:capitalize; letter-spacing:-.01em}
+.g-data span{font-family:var(--mono); font-size:11px; color:var(--ink-3)}
+.g-simbolo{display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--ink-2); min-width:0}
 .g-simbolo span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-.g-barra{position:relative; height:26px}
-.g-barra .traccia{position:absolute; left:0; right:0; top:12px; height:2px; background:var(--line); border-radius:2px}
-.g-barra .arco{position:absolute; top:9px; height:8px; border-radius:4px; background:linear-gradient(90deg, var(--blu), var(--arancio))}
-.g-barra .et{position:absolute; top:-2px; font-family:var(--mono); font-size:11.5px; font-weight:500; font-variant-numeric:tabular-nums}
+.g-curva{color:var(--ink-3); display:flex; align-items:center}
+.g-curva svg{display:block}
+.g-barra{position:relative; height:24px}
+.g-barra .traccia{position:absolute; left:0; right:0; top:11px; height:3px; background:var(--surface-3); border-radius:3px}
+.g-barra .arco2{position:absolute; top:10px; height:5px; border-radius:3px; background:linear-gradient(90deg, var(--blu), var(--arancio))}
+.g-barra .et{position:absolute; top:-3px; font-family:var(--mono); font-size:11.5px; font-weight:500; font-variant-numeric:tabular-nums}
 .g-pioggia{display:flex; align-items:center; gap:8px}
-.mini{width:50px; height:6px; background:var(--surface-3); border-radius:3px; overflow:hidden; flex:none}
+.mini{width:46px; height:6px; background:var(--surface-3); border-radius:3px; overflow:hidden; flex:none}
 .mini i{display:block; height:100%; background:var(--blu); border-radius:3px}
 .g-pioggia span{font-family:var(--mono); font-size:12.5px; font-variant-numeric:tabular-nums}
 .chip{
-  font-family:var(--mono); font-size:10.5px; letter-spacing:.05em; text-transform:uppercase;
+  font-family:var(--mono); font-size:10px; letter-spacing:.06em; text-transform:uppercase;
   padding:3px 8px; border-radius:999px; border:1px solid; display:inline-flex; align-items:center; gap:5px; white-space:nowrap;
 }
-.chip.alta{color:var(--ok); border-color:color-mix(in srgb,var(--ok) 42%,transparent); background:color-mix(in srgb,var(--ok) 9%,transparent)}
-.chip.media{color:var(--attesa); border-color:color-mix(in srgb,var(--attesa) 42%,transparent); background:color-mix(in srgb,var(--attesa) 9%,transparent)}
-.chip.bassa{color:var(--allerta); border-color:color-mix(in srgb,var(--allerta) 42%,transparent); background:color-mix(in srgb,var(--allerta) 9%,transparent)}
-.dettaglio{padding:2px 16px 16px; background:var(--surface-2); border-bottom:1px solid var(--line); font-size:13.5px; color:var(--ink-2)}
-.dettaglio .col{display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:18px; padding-top:14px}
-.dettaglio h4{margin:0 0 7px; font-size:10.5px; font-family:var(--mono); letter-spacing:.09em; text-transform:uppercase; color:var(--ink-3); font-weight:500}
+.chip.alta{color:var(--ok); border-color:color-mix(in srgb,var(--ok) 40%,transparent); background:color-mix(in srgb,var(--ok) 8%,transparent)}
+.chip.media{color:var(--attesa); border-color:color-mix(in srgb,var(--attesa) 40%,transparent); background:color-mix(in srgb,var(--attesa) 8%,transparent)}
+.chip.bassa{color:var(--allerta); border-color:color-mix(in srgb,var(--allerta) 40%,transparent); background:color-mix(in srgb,var(--allerta) 8%,transparent)}
+.dettaglio{padding:0 var(--s3) var(--s3); background:var(--surface-2); border-bottom:1px solid var(--line); font-size:13.5px; color:var(--ink-2)}
+.dettaglio .col{display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:var(--s4); padding-top:var(--s3)}
+.dettaglio h4{margin:0 0 6px; font-size:10px; font-family:var(--mono); letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:500}
 .dettaglio p{line-height:1.5}
-.elenco-mod{display:flex; flex-wrap:wrap; gap:5px}
-.pill{font-family:var(--mono); font-size:11px; padding:2.5px 7px; border-radius:5px; background:var(--surface-3); color:var(--ink-2)}
+.elenco-mod{display:flex; flex-wrap:wrap; gap:4px}
+.pill{font-family:var(--mono); font-size:10.5px; padding:2.5px 7px; border-radius:5px; background:var(--surface-3); color:var(--ink-2)}
 .pill.bagnato{background:var(--blu-fill-2); color:var(--blu)}
 .pill.asciutto{background:var(--surface-3); color:var(--ink-3)}
 
+/* ---------- tabelle ---------- */
 .scorri{overflow-x:auto; border:1px solid var(--line); border-radius:var(--r); background:var(--surface); box-shadow:var(--ombra)}
 table{border-collapse:collapse; width:100%; min-width:700px; font-size:13px}
 th,td{padding:9px 12px; text-align:right; border-bottom:1px solid var(--line); white-space:nowrap}
 th{
-  font-family:var(--mono); font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3);
+  font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3);
   font-weight:500; background:var(--surface); border-bottom:1px solid var(--line-2);
 }
 th:first-child,td:first-child{text-align:left}
@@ -180,83 +305,67 @@ tbody tr:last-child td{border-bottom:0}
 tbody tr:hover{background:var(--surface-2)}
 td.v{font-family:var(--mono); font-variant-numeric:tabular-nums}
 .ente{display:block; font-size:11px; color:var(--ink-3); font-family:var(--ui)}
-.barra-peso{display:flex; align-items:center; gap:7px; justify-content:flex-end}
-.barra-peso i{display:block; height:7px; background:var(--blu); border-radius:2px; min-width:1px}
 .rank{font-family:var(--mono); color:var(--ink-3); font-size:11.5px; width:20px; display:inline-block}
 
-.imparato{display:grid; grid-template-columns:repeat(auto-fit,minmax(258px,1fr)); gap:12px; margin-top:18px}
-.nota{background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--blu); border-radius:6px; padding:12px 14px; font-size:13.5px; line-height:1.45}
-.nota b{display:block; font-family:var(--mono); font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px; font-weight:500}
+/* ---------- riquadri di ciò che si è imparato ---------- */
+.imparato{display:grid; grid-template-columns:repeat(auto-fit,minmax(252px,1fr)); gap:var(--s2); margin-top:var(--s4)}
+.nota{background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--blu); border-radius:var(--r-s); padding:12px 14px; font-size:13.5px; line-height:1.48}
+.nota b{display:block; font-family:var(--mono); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px; font-weight:500}
 .nota.corr{border-left-color:var(--arancio)}
 .nota.att{border-left-color:var(--attesa)}
 
-.metodo{columns:2; column-gap:38px; font-size:13.5px; color:var(--ink-2); line-height:1.6}
+/* ---------- metodo ---------- */
+.metodo{columns:2; column-gap:var(--s6); font-size:13.5px; color:var(--ink-2); line-height:1.6}
 @media (max-width:780px){.metodo{columns:1}}
-.metodo h3{font-size:14px; color:var(--ink); margin:0 0 5px}
-.metodo .blocco{break-inside:avoid; margin-bottom:18px}
+.metodo h3{font-size:13.5px; color:var(--ink); margin:0 0 4px; letter-spacing:-.01em}
+.metodo .blocco{break-inside:avoid; margin-bottom:var(--s3)}
 
-/* nowcasting */
-.verdetto{
-  display:flex; gap:16px; align-items:flex-start; background:var(--surface);
-  border:1px solid var(--line); border-left:4px solid var(--ink-3);
-  border-radius:var(--r); padding:16px 18px; box-shadow:var(--ombra);
-}
-.verdetto.piove{border-left-color:var(--blu)}
-.verdetto.arrivo{border-left-color:var(--attesa)}
-.verdetto.asciutto{border-left-color:var(--ok)}
-.verdetto .testo{flex:1; min-width:0}
-.verdetto h3{font-size:18px; margin-bottom:5px; letter-spacing:-.015em}
-.verdetto p{color:var(--ink-2); font-size:14px; line-height:1.5}
-.verdetto .icona-grande{color:var(--ink-2); flex:none; padding-top:2px}
-.verdetto.piove .icona-grande{color:var(--blu)}
-.verdetto.arrivo .icona-grande{color:var(--attesa)}
-.verdetto.asciutto .icona-grande{color:var(--ok)}
-.quarti{display:flex; gap:3px; margin-top:16px; align-items:flex-end; overflow-x:auto; padding-bottom:4px}
-.quarto{flex:1 1 24px; display:flex; flex-direction:column; align-items:center; gap:5px; min-width:22px}
-.quarto .colonna{width:100%; height:52px; display:flex; align-items:flex-end; background:var(--surface-3); border-radius:3px; overflow:hidden}
-.quarto .colonna i{display:block; width:100%; background:var(--blu)}
-.quarto small{font-family:var(--mono); font-size:9.5px; color:var(--ink-3); white-space:nowrap}
-.riga-radar{
-  margin-top:14px; padding-top:12px; border-top:1px solid var(--line);
-  font-size:12.5px; color:var(--ink-3); font-family:var(--mono); line-height:1.5;
-}
+/* ---------- bollettino ---------- */
+.bollettino{font-family:var(--prosa); font-size:clamp(17px,2.2vw,19px); line-height:1.58; color:var(--ink); max-width:62ch}
+.bollettino p+p{margin-top:var(--s2)}
+.firma{margin-top:var(--s3); font-family:var(--mono); font-size:10.5px; color:var(--ink-3); letter-spacing:.05em; text-transform:uppercase}
 
-/* elementi dei grafici */
+/* ---------- stati e comandi ---------- */
+.carico{display:flex; align-items:center; gap:var(--s2); color:var(--ink-3); font-size:13px; font-family:var(--mono); padding:var(--s4) 0}
+.spin{width:13px; height:13px; border:2px solid var(--line-2); border-top-color:var(--blu); border-radius:50%; animation:g .7s linear infinite; flex:none}
+@keyframes g{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation-duration:2.4s}}
+.scheletro{background:linear-gradient(90deg,var(--surface-3) 25%,var(--surface-2) 37%,var(--surface-3) 63%); background-size:400% 100%; border-radius:6px; animation:onda 1.4s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.scheletro{animation:none}}
+@keyframes onda{0%{background-position:100% 50%} 100%{background-position:0 50%}}
+.errore{background:color-mix(in srgb,var(--allerta) 8%,var(--surface)); border:1px solid color-mix(in srgb,var(--allerta) 30%,transparent); color:var(--allerta); padding:12px 14px; border-radius:var(--r-s); font-size:13px}
+.vuoto{color:var(--ink-3); font-size:13px; padding:var(--s2) 0}
+button.pulsante{
+  font:inherit; font-size:12px; font-family:var(--mono); color:var(--ink-2); background:var(--surface);
+  border:1px solid var(--line-2); border-radius:7px; padding:5px 11px; cursor:pointer; transition:all .12s;
+}
+button.pulsante:hover{border-color:var(--blu); color:var(--blu)}
+button.pulsante[aria-pressed="true"]{background:var(--blu); color:#FFFFFF; border-color:var(--blu)}
+button.pulsante:focus-visible{outline:2px solid var(--blu); outline-offset:2px}
+.comandi{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:var(--s3); align-items:center}
+.comandi .etich{font-family:var(--mono); font-size:10.5px; color:var(--ink-3); letter-spacing:.08em; text-transform:uppercase; margin-right:2px}
+.pie{padding-block:var(--s4); color:var(--ink-3); font-size:12px; line-height:1.55; border-top:1px solid var(--line)}
+
+/* ---------- elementi dei grafici ---------- */
 .gx{stroke:var(--line-2); stroke-width:1}
 .gx-lieve{stroke:var(--line); stroke-width:1; stroke-dasharray:2 4}
-.notte{fill:var(--surface-3); opacity:.55}
+.notte{fill:var(--notte-fill)}
 .et-asse{fill:var(--ink-3); font-family:var(--mono); font-size:10.5px}
-.et-giorno{fill:var(--ink-2); font-family:var(--mono); font-size:10.5px; font-weight:500; letter-spacing:.08em; text-transform:uppercase}
-.linea-t{fill:none; stroke:var(--arancio); stroke-width:2; stroke-linejoin:round; stroke-linecap:round}
+.et-giorno{fill:var(--ink-2); font-family:var(--mono); font-size:10px; font-weight:500; letter-spacing:.09em; text-transform:uppercase}
+.linea-t{fill:none; stroke:var(--arancio); stroke-width:2.2; stroke-linejoin:round; stroke-linecap:round}
 .fascia-t{fill:var(--ar-fill); stroke:none}
 .barra-p{fill:var(--blu)}
 .et-mm{fill:var(--blu); font-family:var(--mono); font-size:9.5px; font-weight:500}
 .punto-t{fill:var(--arancio); stroke:var(--surface); stroke-width:2}
 .zero{stroke:var(--line-2); stroke-width:1}
-.traccia-mod{fill:none; stroke:var(--ink-3); stroke-width:1; opacity:.3}
+.traccia-mod{fill:none; stroke:var(--ink-3); stroke-width:1; opacity:.28}
 .traccia-mod.evid{stroke:var(--viola); stroke-width:2.2; opacity:1}
 .linea-cons{fill:none; stroke:var(--blu); stroke-width:2.6; stroke-linejoin:round; stroke-linecap:round}
 .mirino{stroke:var(--ink-3); stroke-width:1; stroke-dasharray:3 3}
-
-.carico{display:flex; align-items:center; gap:10px; color:var(--ink-3); font-size:13px; font-family:var(--mono); padding:20px 0}
-.spin{width:13px; height:13px; border:2px solid var(--line-2); border-top-color:var(--blu); border-radius:50%; animation:g .7s linear infinite; flex:none}
-@keyframes g{to{transform:rotate(360deg)}}
-@media (prefers-reduced-motion:reduce){.spin{animation-duration:2.4s}}
-.errore{background:color-mix(in srgb,var(--allerta) 8%,var(--surface)); border:1px solid color-mix(in srgb,var(--allerta) 32%,transparent); color:var(--allerta); padding:12px 14px; border-radius:8px; font-size:13px}
-.vuoto{color:var(--ink-3); font-size:13px; padding:8px 0}
-.avanzamento{display:flex; gap:4px; margin-top:14px}
-.avanzamento i{height:3px; flex:1; background:var(--line); border-radius:2px; transition:background .35s}
-.avanzamento i.fatto{background:var(--blu)}
-button.pulsante{
-  font:inherit; font-size:12.5px; font-family:var(--mono); color:var(--ink-2); background:var(--surface);
-  border:1px solid var(--line-2); border-radius:7px; padding:5px 11px; cursor:pointer;
-}
-button.pulsante:hover{border-color:var(--blu); color:var(--blu)}
-button.pulsante[aria-pressed="true"]{background:var(--blu); color:#FFFFFF; border-color:var(--blu)}
-button.pulsante:focus-visible{outline:2px solid var(--blu); outline-offset:2px}
-.comandi{display:flex; gap:7px; flex-wrap:wrap; margin-bottom:14px; align-items:center}
-.comandi .etich{font-family:var(--mono); font-size:11px; color:var(--ink-3); letter-spacing:.07em; text-transform:uppercase; margin-right:3px}
-.pie{padding-block:26px; color:var(--ink-3); font-size:12px; line-height:1.55; border-top:1px solid var(--line)}
+.icona-grafico{color:var(--ink-2)}
+.adesso-riga{stroke:var(--blu); stroke-width:1.5; stroke-dasharray:4 3}
+.adesso-et{fill:var(--blu); font-family:var(--mono); font-size:9.5px; font-weight:600; letter-spacing:.08em}
+.sole-et{fill:var(--ink-3); font-family:var(--mono); font-size:9px}
 </style>
 
 <div class="top">
@@ -267,11 +376,24 @@ button.pulsante:focus-visible{outline:2px solid var(--blu); outline-offset:2px}
   </div>
 </div>
 
+<nav class="nav" aria-label="Sezioni">
+  <div class="nav-in" id="nav-in">
+    <a href="#sez-adesso">Adesso</a>
+    <a href="#sez-ore">48 ore</a>
+    <a href="#sez-giorni">7 giorni</a>
+    <a href="#sez-bollettino">Bollettino</a>
+    <a href="#sez-accordo">Accordo</a>
+    <a href="#sez-pagella">Pagella</a>
+    <a href="#sez-verifica">Verifica</a>
+    <a href="#sez-metodo">Metodo</a>
+  </div>
+</nav>
+
 <div class="wrap">
 
   <header class="testata">
     <h1>Il meteo di Pedrengo, deciso dopo aver guardato i dati</h1>
-    <p class="sotto">Diciotto modelli fisici di tredici centri meteorologici nazionali, 122 membri di ensemble e i pluviometri ARPA a tre chilometri dal paese. Nessuna previsione ricopiata da un provider: i numeri vengono incrociati, corretti per gli errori che ogni modello ha davvero commesso qui, e poi verificati contro quello che è successo. Le correzioni restano solo se dimostrano di funzionare su giorni che il sistema non aveva mai visto.</p>
+    <p class="sotto">Diciotto modelli di tredici centri meteorologici nazionali, 122 membri di ensemble, il radar e i pluviometri a tre chilometri dal paese. Ogni correzione resta solo se funziona su giorni che il sistema non aveva mai visto.</p>
     <div class="coord">
       <span class="tag">45.694 N · 9.734 E</span>
       <span class="tag" id="tag-modelli">18 modelli · 13 centri</span>
@@ -282,27 +404,29 @@ button.pulsante:focus-visible{outline:2px solid var(--blu); outline-offset:2px}
   </header>
 
   <section id="sez-adesso">
-    <div class="occhiello">Adesso · misurato, non previsto</div>
-    <h2>Che tempo fa in questo momento</h2>
-    <p class="guida">Questo blocco non contiene previsioni. Sono letture di stazioni meteorologiche reali, aggiornate ogni dieci minuti. Accanto trovi cosa dicevano i modelli per quest'ora, così vedi lo scarto mentre succede.</p>
-    <div class="adesso" id="blocco-adesso">
-      <div class="riquadro"><div class="carico"><span class="spin"></span>lettura stazioni ARPA Lombardia</div></div>
-      <div class="riquadro"><div class="carico"><span class="spin"></span>confronto con i modelli</div></div>
+    <div class="eroe">
+      <div class="eroe-testa">
+        <div id="eroe-ora">
+          <span class="etichetta">Adesso · misurato, non previsto</span>
+          <div class="ora-grande">
+            <div class="scheletro" style="width:170px; height:66px"></div>
+            <div class="scheletro" style="width:130px; height:20px; margin-top:8px"></div>
+          </div>
+        </div>
+        <div id="eroe-oggi" class="oggi">
+          <span class="etichetta">Oggi</span>
+          <div class="scheletro" style="width:100%; height:78px"></div>
+        </div>
+      </div>
+      <div id="blocco-nowcast">
+        <div class="verdetto">
+          <span class="testo"><div class="scheletro" style="width:210px; height:17px"></div>
+          <div class="scheletro" style="width:100%; height:13px; margin-top:8px"></div></span>
+        </div>
+      </div>
+      <div class="striscia" id="eroe-strip"></div>
     </div>
-  </section>
-
-  <section id="sez-nowcast">
-    <div class="occhiello">Prossime tre ore · radar</div>
-    <h2>Sta per piovere?</h2>
-    <p class="guida">Sotto le tre ore i modelli fisici sono al loro punto più debole, e quello che conta davvero è dove si trova la pioggia adesso e in che direzione si muove. Qui l'eco radar dell'ultima ora viene estrapolato in avanti, e messo accanto ai sei modelli ad alta risoluzione che aggiornano ogni quarto d'ora e ai pluviometri del paese.</p>
-    <div id="blocco-nowcast"><div class="carico"><span class="spin"></span>lettura del radar e dei modelli a 15 minuti</div></div>
-  </section>
-
-  <section id="sez-bollettino">
-    <div class="occhiello">Bollettino</div>
-    <h2>In parole</h2>
-    <div class="bollettino" id="bollettino"><p class="vuoto">Il testo viene scritto dai numeri, dopo averli visti.</p></div>
-    <div class="firma" id="firma-bollettino"></div>
+    <p class="nota-fonte" id="eroe-fonte"></p>
   </section>
 
   <section id="sez-ore">
@@ -311,9 +435,9 @@ button.pulsante:focus-visible{outline:2px solid var(--blu); outline-offset:2px}
     <p class="guida" id="guida-ore">La fascia attorno alla linea della temperatura punta a contenere il valore vero in otto casi su dieci, e quanto ci riesca davvero viene misurato e scritto qui sotto invece che promesso. Le barre della pioggia sono probabilità calcolate sui membri di ensemble e tarate sulla frequenza reale, non la media delle opinioni dei modelli.</p>
     <div class="tela" id="tela-ore"><div class="carico"><span class="spin"></span>calcolo del consenso orario</div></div>
     <div class="legenda" id="legenda-ore" hidden>
-      <span><i style="background:var(--arancio)"></i>temperatura, consenso pesato</span>
+      <span><i style="background:var(--arancio)"></i>temperatura, consenso</span>
       <span><i class="quad" style="background:var(--ar-fill); border:1px solid var(--arancio)"></i>intervallo 80 per cento</span>
-      <span><i class="quad" style="background:var(--blu)"></i>probabilità di pioggia, scala 0 - 100</span>
+      <span><i class="quad" style="background:var(--blu)"></i>probabilità di pioggia, 0 - 100</span>
       <span><i class="quad" style="background:var(--surface-3)"></i>ore di buio</span>
       <span>il numero sopra la barra sono i millimetri attesi</span>
     </div>
@@ -326,15 +450,27 @@ button.pulsante:focus-visible{outline:2px solid var(--blu); outline-offset:2px}
     <div id="lista-giorni"><div class="carico"><span class="spin"></span>aggregazione giornaliera</div></div>
   </section>
 
+  <section id="sez-bollettino">
+    <div class="occhiello">Bollettino</div>
+    <h2>In parole</h2>
+    <div class="bollettino" id="bollettino"><p class="vuoto">Il testo viene scritto dai numeri, dopo averli visti.</p></div>
+    <div class="firma" id="firma-bollettino"></div>
+  </section>
+
+  <div class="spartiacque">
+    <h2>Come fa a saperlo</h2>
+    <p>Da qui in giù c'è il motore: quali modelli hanno sbagliato, di quanto, e cosa è stato corretto di conseguenza. Serve a controllare il sito, non a consultarlo.</p>
+  </div>
+
   <section id="sez-accordo">
     <div class="occhiello">Dietro al numero</div>
     <h2>Dove i modelli non sono d'accordo</h2>
-    <p class="guida">Ogni linea sottile è un modello diverso. La linea spessa è il consenso pesato. Quando le linee si aprono a ventaglio la previsione è fragile, ed è l'informazione che di solito nessuno mostra.</p>
+    <p class="guida">Ogni linea sottile è un modello diverso. La linea spessa è il consenso. Quando le linee si aprono a ventaglio la previsione è fragile, ed è l'informazione che di solito nessuno mostra.</p>
     <div class="comandi" id="comandi-ventaglio"></div>
     <div class="tela" id="tela-ventaglio"><div class="carico"><span class="spin"></span>lettura dei singoli modelli</div></div>
     <div class="legenda">
       <span><i style="background:var(--ink-3); opacity:.45"></i>un modello singolo</span>
-      <span><i style="background:var(--blu); height:3px"></i>consenso pesato</span>
+      <span><i style="background:var(--blu); height:3px"></i>consenso</span>
       <span><i style="background:var(--viola)"></i>modello sotto il puntatore</span>
       <span>passa sopra il grafico per vedere chi è chi</span>
     </div>
@@ -343,7 +479,7 @@ button.pulsante:focus-visible{outline:2px solid var(--blu); outline-offset:2px}
   <section id="sez-pagella">
     <div class="occhiello">Pagella · verifica a posteriori</div>
     <h2>Quanto ha sbagliato ogni modello, qui, negli ultimi giorni</h2>
-    <p class="guida">Per ogni modello viene recuperato cosa aveva previsto 24, 48 e 72 ore prima, e confrontato con le misure delle stazioni. Da questi scarti nascono le correzioni che vengono applicate alle previsioni future. Quello che invece non viene fatto, dopo averlo provato e misurato, è dare più peso ai modelli più bravi: peggiorava, e il riquadro qui sotto spiega di quanto.</p>
+    <p class="guida">Per ogni modello viene recuperato cosa aveva previsto 24, 48 e 72 ore prima, e confrontato con le misure delle stazioni. Da questi scarti nascono le correzioni applicate alle previsioni future. Quello che invece non viene fatto, dopo averlo provato e misurato, è dare più peso ai modelli più bravi: peggiorava, e il riquadro qui sotto spiega di quanto.</p>
     <div id="tabella-pagella"><div class="carico"><span class="spin"></span>confronto delle previsioni passate con le misure</div></div>
     <div class="imparato" id="imparato"></div>
   </section>
@@ -369,11 +505,11 @@ button.pulsante:focus-visible{outline:2px solid var(--blu); outline-offset:2px}
       </div>
       <div class="blocco">
         <h3>La verità di riferimento</h3>
-        <p>Le misure vengono dalle stazioni ARPA Lombardia più vicine, con un dato ogni dieci minuti: <span id="metodo-stazioni">Torre Boldone, Bergamo via Maffei, Bergamo via Goisis, Trescore Balneario</span>. Sono termometri e pluviometri veri, non rianalisi di modello.</p>
+        <p>Le misure vengono dalle stazioni ARPA Lombardia più vicine, con un dato ogni dieci minuti: <span id="metodo-stazioni">Torre Boldone, Bergamo via Goisis, Trescore Balneario</span>. Sono termometri e pluviometri veri, non rianalisi di modello.</p>
       </div>
       <div class="blocco">
         <h3>Correzione di sito</h3>
-        <p>Una stazione non è Pedrengo. Prima di usarla come metro di giudizio viene misurato lo scarto sistematico fra stazione e punto griglia di Pedrengo sugli ultimi dieci giorni, e sottratto: altrimenti la posizione del termometro verrebbe scambiata per errore del modello. Scarto attuale: <b class="mono" id="metodo-offset">in calcolo</b>.</p>
+        <p>Una stazione non è Pedrengo. Prima di usarla come metro di giudizio viene misurato lo scarto sistematico fra stazione e punto griglia di Pedrengo, e sottratto: altrimenti la posizione del termometro verrebbe scambiata per errore del modello. Scarto attuale: <b class="mono" id="metodo-offset">in calcolo</b>.</p>
       </div>
       <div class="blocco">
         <h3>Correzione per regime</h3>
@@ -393,7 +529,11 @@ button.pulsante:focus-visible{outline:2px solid var(--blu); outline-offset:2px}
       </div>
       <div class="blocco">
         <h3>Come nasce la probabilità di pioggia</h3>
-        <p>Non è la percentuale di modelli che dicono pioggia. È la frazione di membri di ensemble che superano 0,2 mm, calcolata separatamente per i tre sistemi probabilistici (ECMWF 51 membri, ICON-EPS 40, GEFS 31) in modo che il più numeroso non domini, combinata con l'accordo dei deterministici pesati per bravura, e infine tarata sulla frequenza con cui è piovuto davvero.</p>
+        <p>Non è la percentuale di modelli che dicono pioggia. È la frazione di membri di ensemble che superano 0,2 mm, calcolata separatamente per i tre sistemi probabilistici (ECMWF 51 membri, ICON-EPS 40, GEFS 31) in modo che il più numeroso non domini, combinata con l'accordo dei deterministici, e infine tarata sulla frequenza con cui è piovuto davvero.</p>
+      </div>
+      <div class="blocco">
+        <h3>Le prossime tre ore</h3>
+        <p>Sotto le tre ore i modelli fisici sono al loro punto più debole. Entra allora il radar: vengono lette le ultime sei scansioni, scartato l'eco che resta immobile in tutte perché è terreno e non pioggia, stimato lo spostamento del campo e proiettato in avanti. Se il movimento non è abbastanza netto, viene dichiarato invece di essere inventato.</p>
       </div>
       <div class="blocco">
         <h3>Sul termine perfetto</h3>
@@ -401,13 +541,13 @@ button.pulsante:focus-visible{outline:2px solid var(--blu); outline-offset:2px}
       </div>
       <div class="blocco">
         <h3>Aggiornamento</h3>
-        <p>I dati vengono riscaricati a ogni apertura della pagina. I modelli globali girano quattro volte al giorno (00, 06, 12 e 18 UTC), quelli ad alta risoluzione fino a otto. Le stazioni ARPA aggiornano ogni dieci minuti.</p>
+        <p>I dati vengono riscaricati a ogni apertura della pagina. I modelli globali girano quattro volte al giorno, quelli ad alta risoluzione fino a otto. Le stazioni ARPA aggiornano ogni dieci minuti, il radar ogni dieci. Ogni notte un lavoro programmato mette da parte la previsione emessa e ricalcola le tarature lunghe.</p>
       </div>
     </div>
   </section>
 
   <footer class="pie">
-    <p>Dati: Open-Meteo, che dà accesso ai modelli dei servizi meteorologici nazionali (licenza CC BY 4.0), e ARPA Lombardia (open data, dati.lombardia.it). Elaborazione, pesatura e verifica eseguite dentro il browser.</p>
+    <p>Dati: Open-Meteo, che dà accesso ai modelli dei servizi meteorologici nazionali (licenza CC BY 4.0), ARPA Lombardia (open data, dati.lombardia.it) e RainViewer per il radar. Elaborazione, pesatura e verifica eseguite dentro il browser.</p>
     <p id="pie-tempi" class="mono" style="margin-top:8px"></p>
   </footer>
 </div>
