@@ -1,5 +1,27 @@
 {
- "righe": [],
- "aggiornato": "2026-09-18T07:27:53.069Z",
- "riassunto": {}
+ "righe": [
+  {
+   "emessa": "2026-09-17",
+   "giorno": "2026-09-18",
+   "lead": 1,
+   "tmaxPrev": 22.9,
+   "tmaxVero": 23.2,
+   "tminPrev": 16.9,
+   "tminVero": 16.1,
+   "probPrev": 0.829,
+   "mmPrev": 6.2,
+   "mmVero": 4.1,
+   "piovuto": 1,
+   "fiducia": "media"
+  }
+ ],
+ "aggiornato": "2026-09-19T07:25:00.340Z",
+ "riassunto": {
+  "1": {
+   "giorni": 1,
+   "erroreMassima": 0.3,
+   "scartoMassima": -0.3,
+   "brierPioggia": 0.0292
+  }
+ }
 }
