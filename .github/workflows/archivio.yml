@@ -3,10 +3,16 @@ name: Archivio e taratura
 # Ogni notte mette da parte la previsione emessa, la confronta con le misure
 # dei giorni ormai chiusi, e ricalcola la taratura della pioggia su novantadue
 # giorni, che e la finestra che il browser non puo permettersi a ogni apertura.
+#
+# Due esecuzioni al giorno: la seconda serve solo da recupero se la prima e
+# caduta, per esempio perche i servizi aperti hanno rifiutato le richieste con
+# un 429. Se la previsione del giorno e gia stata archiviata, la seconda non la
+# riscrive, cosi l'anticipo delle previsioni archiviate resta confrontabile.
 
 on:
   schedule:
     - cron: '20 2 * * *'
+    - cron: '40 5 * * *'
   workflow_dispatch:
 
 permissions:
@@ -19,7 +25,7 @@ concurrency:
 jobs:
   archivia:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
 
@@ -30,7 +36,9 @@ jobs:
       - name: Aggiorna archivio e tarature
         run: node strumenti/archivia.js
 
+      # anche se lo script si e fermato a meta, quello che ha gia scritto va salvato
       - name: Salva i risultati
+        if: always()
         run: |
           git config user.name "archivio PedrengoMeteo"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -39,5 +47,6 @@ jobs:
             echo "nessuna novita da salvare"
           else
             git commit -m "Archivio del $(date -u +%Y-%m-%d)"
+            git pull --rebase --autostash origin main
             git push
           fi

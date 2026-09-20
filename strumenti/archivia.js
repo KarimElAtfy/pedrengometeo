@@ -31,33 +31,73 @@ function scriviJson(nome, dati) {
   console.log('scritto dati/' + nome);
 }
 const arrotonda = (v, d = 2) => (v === null || v === undefined || !isFinite(v)) ? null : +v.toFixed(d);
+const pausa = ms => new Promise(r => setTimeout(r, ms));
+
+/* Le richieste vanno in fila e non tutte insieme: sei chiamate pesanti in
+   parallelo dallo stesso indirizzo sono il modo piu rapido per farsi rifiutare
+   con un 429, ed e esattamente quello che e successo. Fra una e l altra una
+   pausa breve. Le chiamate marcate come non indispensabili, se falliscono,
+   non fermano il lavoro: meglio un archivio parziale che un buco. */
+async function inFila(nome, fabbrica, indispensabile = true) {
+  try {
+    const esito = await fabbrica();
+    console.log('  ok: ' + nome);
+    return esito;
+  } catch (e) {
+    const msg = '  fallita: ' + nome + ' (' + (e && e.message ? e.message : e) + ')';
+    if (indispensabile) { console.error(msg + ' [indispensabile]'); throw e; }
+    console.error(msg + ' [si prosegue senza]');
+    return null;
+  }
+}
 
 async function principale() {
   const idModelli = M.MODELLI.map(m => m.id).join(',');
   const daLungo = new Date(Date.now() - GIORNI_LUNGHI * 86400e3).toISOString().slice(0, 19);
   const daCorto = new Date(Date.now() - M.GIORNI_VERIFICA * 86400e3).toISOString().slice(0, 19);
 
-  console.log('scarico i dati...');
-  const [det, ens, prevCorto, prevLungo, arpaTemp, arpaPioggia] = await Promise.all([
-    M.scaricaConRitento(M.urlOpenMeteo('https://api.open-meteo.com/v1/forecast', {
+  console.log('scarico i dati, una richiesta per volta...');
+  const RIT = 4;   // fino a quattro ritenti con attese crescenti
+
+  const det = await inFila('previsione corrente', () => M.scaricaConRitento(
+    M.urlOpenMeteo('https://api.open-meteo.com/v1/forecast', {
       hourly: M.VARIABILI.join(','), models: idModelli, forecast_days: 7, past_days: 2
-    }), 120000),
-    M.scaricaConRitento(M.urlOpenMeteo('https://ensemble-api.open-meteo.com/v1/ensemble', {
+    }), 120000, RIT));
+  await pausa(1500);
+
+  const ens = await inFila('ensemble', () => M.scaricaConRitento(
+    M.urlOpenMeteo('https://ensemble-api.open-meteo.com/v1/ensemble', {
       hourly: 'temperature_2m,precipitation', models: 'ecmwf_ifs025,icon_eu,gfs025', forecast_days: 7
-    }), 120000),
-    M.scaricaConRitento(M.urlOpenMeteo('https://previous-runs-api.open-meteo.com/v1/forecast', {
+    }), 120000, RIT));
+  await pausa(1500);
+
+  const prevCorto = await inFila('run precedenti, finestra corta', () => M.scaricaConRitento(
+    M.urlOpenMeteo('https://previous-runs-api.open-meteo.com/v1/forecast', {
       hourly: ['temperature_2m', 'temperature_2m_previous_day1', 'temperature_2m_previous_day2',
                'temperature_2m_previous_day3', 'precipitation', 'precipitation_previous_day1',
                'precipitation_previous_day2', 'precipitation_previous_day3', 'cloud_cover'].join(','),
       models: idModelli, past_days: M.GIORNI_VERIFICA, forecast_days: 1
-    }), 180000),
-    M.scaricaConRitento(M.urlOpenMeteo('https://previous-runs-api.open-meteo.com/v1/forecast', {
+    }), 180000, RIT));
+  await pausa(2500);
+
+  /* La temperatura serve solo alla pagella e allo scarto di sito, che guardano
+     tre settimane: chiedere novantadue giorni per tre sensori voleva dire
+     ventiseimila righe inutili, e proprio questa richiesta e quella che si e
+     presa il 429. La pioggia invece la finestra lunga la usa davvero. */
+  const arpaTemp = await inFila('misure di temperatura ARPA', () => M.scaricaConRitento(
+    M.urlArpa(['8145', '19022', '5864'], daCorto, 50000), 120000, RIT));
+  await pausa(3000);
+
+  const arpaPioggia = await inFila('misure di pioggia ARPA', () => M.scaricaConRitento(
+    M.urlArpa(['8161', '19026', '5857', '22322'], daLungo, 50000), 180000, RIT));
+  await pausa(3000);
+
+  // se questa salta, si perde solo l aggiornamento della taratura lunga
+  const prevLungo = await inFila('run precedenti, finestra lunga', () => M.scaricaConRitento(
+    M.urlOpenMeteo('https://previous-runs-api.open-meteo.com/v1/forecast', {
       hourly: ['precipitation_previous_day1', 'temperature_2m', 'cloud_cover'].join(','),
       models: idModelli, past_days: GIORNI_LUNGHI, forecast_days: 1
-    }), 240000),
-    M.scaricaConRitento(M.urlArpa(['8145', '19022', '5864'], daLungo, 50000), 180000),
-    M.scaricaConRitento(M.urlArpa(['8161', '19026', '5857', '22322'], daLungo, 50000), 180000)
-  ]);
+    }), 240000, RIT), false);
 
   const serieDet = M.leggiMultiModello(det, M.MODELLI.map(m => m.id), M.VARIABILI);
   const serieEns = M.leggiEnsemble(ens);
@@ -65,8 +105,9 @@ async function principale() {
     ['temperature_2m', 'temperature_2m_previous_day1', 'temperature_2m_previous_day2',
      'temperature_2m_previous_day3', 'precipitation', 'precipitation_previous_day1',
      'precipitation_previous_day2', 'precipitation_previous_day3', 'cloud_cover']);
-  const serieLungo = M.leggiMultiModello(prevLungo, M.MODELLI.map(m => m.id),
-    ['precipitation_previous_day1', 'temperature_2m', 'cloud_cover']);
+  const serieLungo = prevLungo
+    ? M.leggiMultiModello(prevLungo, M.MODELLI.map(m => m.id), ['precipitation_previous_day1', 'temperature_2m', 'cloud_cover'])
+    : { ore: [], serie: {} };
 
   const perSensore = M.aggregaArpa(arpaTemp.concat(arpaPioggia));
   let oss = M.serieOsservate(perSensore);
@@ -103,18 +144,31 @@ async function principale() {
   /* --- 1. taratura lunga della pioggia --- */
   const binsLunghi = M.curvaAffidabilita(serieLungo, oss);
   const orePiovose = [...oss.pioggia.values()].filter(v => v >= M.SOGLIA_PIOGGIA).length;
-  scriviJson('taratura.json', {
-    aggiornato: new Date().toISOString(),
-    giorniGuardati: GIORNI_LUNGHI,
-    orePiovoseMisurate: orePiovose,
-    oreTotali: oss.pioggia.size,
-    bins: binsLunghi.map(b => ({ c: b.c, n: b.n, colpi: b.colpi }))
-  });
+  const campioniNuovi = binsLunghi.reduce((s, b) => s + b.n, 0);
+  const taraturaVecchia = leggiJson('taratura.json', null);
+  const campioniVecchi = taraturaVecchia && Array.isArray(taraturaVecchia.bins)
+    ? taraturaVecchia.bins.reduce((s, b) => s + (b.n || 0), 0) : 0;
+  // una taratura piu povera di quella gia in archivio non la sostituisce
+  if (campioniNuovi >= campioniVecchi * 0.8) {
+    scriviJson('taratura.json', {
+      aggiornato: new Date().toISOString(),
+      giorniGuardati: GIORNI_LUNGHI,
+      orePiovoseMisurate: orePiovose,
+      oreTotali: oss.pioggia.size,
+      bins: binsLunghi.map(b => ({ c: b.c, n: b.n, colpi: b.colpi }))
+    });
+  } else {
+    console.log('  taratura lasciata com era: ' + campioniNuovi + ' campioni contro i ' + campioniVecchi + ' gia in archivio');
+  }
+  // per il consenso di oggi si usa la curva piu ricca fra quella nuova e quella gia in archivio
+  const binsUsati = (campioniNuovi >= campioniVecchi || !taraturaVecchia)
+    ? binsLunghi
+    : taraturaVecchia.bins.map(b => ({ c: b.c, n: b.n || 0, colpi: b.colpi || 0 }));
 
   /* --- 2. pagella e tarature sulla finestra corta --- */
   const pagella = M.calcolaPagella(serieCorto, oss, nuvole);
   const fascia = M.taraturaFascia(M.ricostruisciPassato(serieCorto, oss, nuvole, pagella));
-  const sfasamenti = M.sfasamentoPioggia(serieLungo, oss);
+  const sfasamenti = M.sfasamentoPioggia(prevLungo ? serieLungo : serieCorto, oss);
   const zona = M.disomogeneitaPioggia(oss);
   scriviJson('pagella.json', {
     aggiornato: new Date().toISOString(),
@@ -133,12 +187,18 @@ async function principale() {
   /* --- 3. la previsione emessa oggi, messa da parte per domani --- */
   const adesso = M.chiaveOra(new Date());
   const consenso = M.costruisciConsenso({
-    det: serieDet, ens: serieEns, pagella, oss, bins: binsLunghi, adesso,
+    det: serieDet, ens: serieEns, pagella, oss, bins: binsUsati, adesso,
     cape: new Map(), fascia, sfasamenti
   });
   const giorni = M.aggregaGiorni(consenso, serieEns, adesso.slice(0, 10), pagella);
   const oggi = adesso.slice(0, 10);
-  scriviJson('emesse/' + oggi + '.json', {
+  /* Se la previsione di oggi e gia archiviata non si riscrive: la seconda
+     esecuzione della giornata serve a recuperare un fallimento, non a
+     sostituire una previsione con una piu fresca, altrimenti l anticipo delle
+     previsioni archiviate non sarebbe piu confrontabile fra un giorno e l altro. */
+  if (fs.existsSync(path.join(CARTELLA, 'emesse', oggi + '.json'))) {
+    console.log('  previsione di oggi gia in archivio, non la tocco');
+  } else scriviJson('emesse/' + oggi + '.json', {
     emessa: new Date().toISOString(),
     giorni: giorni.map(g => ({
       data: g.data, tmax: arrotonda(g.tmax, 1), tmin: arrotonda(g.tmin, 1),

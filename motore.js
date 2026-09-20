@@ -126,14 +126,41 @@ async function scarica(url, ms = 30000) {
   const stop = setTimeout(() => ctrl.abort(), ms);
   try {
     const r = await fetch(url, { signal: ctrl.signal });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
+    if (!r.ok) {
+      const e = new Error('HTTP ' + r.status);
+      e.stato = r.status;
+      const ra = parseInt(r.headers.get('retry-after') || '0', 10);
+      e.attesaSuggerita = isFinite(ra) ? ra : 0;
+      throw e;
+    }
     return await r.json();
   } finally { clearTimeout(stop); }
 }
 
-async function scaricaConRitento(url, ms) {
-  try { return await scarica(url, ms); }
-  catch (e) { await new Promise(r => setTimeout(r, 900)); return await scarica(url, ms); }
+/* I servizi aperti limitano la frequenza delle richieste e rispondono 429 quando
+   si esagera. Socrata, che serve i dati ARPA, conta per indirizzo IP, e i runner
+   di GitHub condividono gli IP con mezzo mondo: il limite si tocca anche facendo
+   poche richieste. Un solo ritento dopo un secondo non serve a niente, perche la
+   finestra del limite dura minuti. Qui le attese crescono, e se il server dice
+   lui quanto aspettare, si ascolta. Gli errori che non ha senso ritentare, come
+   un 400 per una richiesta scritta male, falliscono subito. */
+const ATTESE_RITENTO = [3000, 12000, 35000, 90000];
+
+async function scaricaConRitento(url, ms, tentativi = 2) {
+  let ultimo = null;
+  for (let i = 0; i <= tentativi; i++) {
+    try { return await scarica(url, ms); }
+    catch (e) {
+      ultimo = e;
+      const ritentabile = !e.stato || e.stato === 429 || e.stato === 408 || e.stato >= 500;
+      if (i === tentativi || !ritentabile) break;
+      const suggerita = (e.attesaSuggerita > 0) ? e.attesaSuggerita * 1000 : 0;
+      const attesa = Math.max(suggerita, ATTESE_RITENTO[Math.min(i, ATTESE_RITENTO.length - 1)])
+                   + Math.floor(Math.random() * 1500);
+      await new Promise(r => setTimeout(r, attesa));
+    }
+  }
+  throw ultimo;
 }
 
 function urlOpenMeteo(base, extra) {
