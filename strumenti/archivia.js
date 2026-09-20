@@ -55,6 +55,9 @@ async function principale() {
   const idModelli = M.MODELLI.map(m => m.id).join(',');
   const daLungo = new Date(Date.now() - GIORNI_LUNGHI * 86400e3).toISOString().slice(0, 19);
   const daCorto = new Date(Date.now() - M.GIORNI_VERIFICA * 86400e3).toISOString().slice(0, 19);
+  // come nel sito, i sensori vengono da STAZIONI e non riscritti qui
+  const sensoriTemp = [...new Set(M.STAZIONI.filter(s => s.tipo === 'temp').map(s => s.id))];
+  const sensoriPioggia = [...new Set(M.STAZIONI.filter(s => s.tipo === 'pioggia').map(s => s.id))];
 
   console.log('scarico i dati, una richiesta per volta...');
   const RIT = 4;   // fino a quattro ritenti con attese crescenti
@@ -85,11 +88,11 @@ async function principale() {
      ventiseimila righe inutili, e proprio questa richiesta e quella che si e
      presa il 429. La pioggia invece la finestra lunga la usa davvero. */
   const arpaTemp = await inFila('misure di temperatura ARPA', () => M.scaricaConRitento(
-    M.urlArpa(['8145', '19022', '5864'], daCorto, 50000), 120000, RIT));
+    M.urlArpa(sensoriTemp, daCorto, 50000), 120000, RIT));
   await pausa(3000);
 
   const arpaPioggia = await inFila('misure di pioggia ARPA', () => M.scaricaConRitento(
-    M.urlArpa(['8161', '19026', '5857', '22322'], daLungo, 50000), 180000, RIT));
+    M.urlArpa(sensoriPioggia, daLungo, 50000), 180000, RIT));
   await pausa(3000);
 
   // se questa salta, si perde solo l aggiornamento della taratura lunga

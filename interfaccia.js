@@ -1055,6 +1055,10 @@ async function avvia() {
 
   const idModelli = MODELLI.map(m => m.id).join(',');
   const orizzonteVerifica = new Date(Date.now() - GIORNI_VERIFICA * 86400e3).toISOString().slice(0, 19);
+  /* I sensori si ricavano da STAZIONI e non si riscrivono qui: ripeterli voleva
+     dire che bastava dimenticarne uno per avere un sito che gira senza misure. */
+  const sensoriMisure = [...new Set(STAZIONI.filter(s => s.tipo === 'temp' || s.tipo === 'pioggia').map(s => s.id))];
+  const sensoriAria = [...new Set(STAZIONI.filter(s => ['umidita', 'vento', 'raffica', 'dirvento'].includes(s.tipo)).map(s => s.id))];
   const recente = new Date(Date.now() - 12 * 3600e3).toISOString().slice(0, 19);
 
   const richieste = [
@@ -1069,8 +1073,8 @@ async function avvia() {
                'precipitation', 'precipitation_previous_day1', 'precipitation_previous_day2', 'precipitation_previous_day3'].join(','),
       models: idModelli, past_days: GIORNI_VERIFICA, forecast_days: 1
     }), 60000),
-    scaricaConRitento(urlArpa(['8145', '19022', '5864', '8161', '19026', '5857', '22322'], orizzonteVerifica, 30000), 45000),
-    scaricaConRitento(urlArpa(['6158', '19103', '5981'], recente, 500), 25000),
+    scaricaConRitento(urlArpa(sensoriMisure, orizzonteVerifica, 40000), 45000),
+    scaricaConRitento(urlArpa(sensoriAria, recente, 1200), 25000),
     scarica(urlOpenMeteo('https://api.open-meteo.com/v1/forecast', {
       hourly: 'cape', models: 'icon_seamless,ecmwf_ifs025,gfs_seamless,italia_meteo_arpae_icon_2i', forecast_days: 7
     }), 30000).catch(() => null),
