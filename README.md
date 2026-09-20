@@ -81,6 +81,7 @@ non gira, il sito continua a funzionare con la sua finestra corta.
 | `interfaccia.js` | grafici, bollettino, tabelle, avvio |
 | `costruisci.sh` | unisce i quattro file in `index.html` |
 | `index.html` | il sito costruito, l'unico file che serve pubblicare |
+| `prova.js` | banco di prova: scarica i dati veri e stampa cosa calcola il motore |
 | `strumenti/archivia.js` | il lavoro notturno che riempie `dati/` |
 | `dati/` | tarature lunghe, previsioni emesse, registro delle verifiche |
 
