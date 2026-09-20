@@ -2885,87 +2885,6 @@ function rendiArchivio() {
     <p class="guida" style="margin-top:10px; margin-bottom:0">Scarto medio: se è negativo il sito tende a sottostimare, se è positivo a sovrastimare. Punteggio pioggia: quanto si discostano le probabilità annunciate da quello che è successo, zero sarebbe la perfezione e venticinque il valore di chi tira a indovinare dicendo sempre metà e metà.</p>`;
 }
 
-/* ---------------- memoria di lungo periodo ---------------- */
-
-async function apriMemoria() {
-  try {
-    const db = await (window.claude && window.claude.use ? window.claude.use('db') : null);
-    if (!db) return null;
-    return db;
-  } catch (e) { return null; }
-}
-
-async function leggiMemoria(db) {
-  const out = { taratura: null, storico: [] };
-  try {
-    const t = await db.doc('memoria/taratura').get();
-    if (t.exists) out.taratura = t.data();
-  } catch (e) { }
-  try {
-    const q = await db.collection('verifiche').orderBy('data', 'desc').limit(120).get();
-    out.storico = q.docs.map(d => d.data()).filter(Boolean);
-  } catch (e) { }
-  return out;
-}
-
-async function scriviMemoria(db) {
-  const oggi = chiaveOra(new Date()).slice(0, 10);
-  try {
-    const lucchetto = await db.doc('memoria/lucchetto').acquire({ holder: 'sessione-' + Math.random().toString(36).slice(2, 8), ttlMs: 20000 });
-    if (!lucchetto.acquired) return;
-  } catch (e) { return; }
-
-  // bins della taratura, sommati a quelli già in memoria
-  try {
-    const rif = db.doc('memoria/taratura');
-    const attuale = await rif.get();
-    const vecchi = attuale.exists && Array.isArray(attuale.data().bins) ? attuale.data().bins : null;
-    const fusi = (STATO.bins || []).map((b, i) => {
-      const v = vecchi && vecchi[i] ? vecchi[i] : { n: 0, colpi: 0 };
-      const ultimo = attuale.exists ? attuale.data().ultimo : null;
-      if (ultimo === oggi) return v;
-      return { c: b.c, n: (v.n || 0) + b.n, colpi: (v.colpi || 0) + b.colpi };
-    });
-    await rif.set({ bins: fusi, ultimo: oggi, aggiornato: new Date().toISOString() });
-  } catch (e) { }
-
-  // una riga di verifica per ogni giorno chiuso
-  try {
-    for (const r of STATO.verifica.slice(-4)) {
-      if (r.data >= oggi) continue;
-      const rif = db.collection('verifiche').doc(r.data);
-      const esiste = await rif.get();
-      if (esiste.exists) continue;
-      await rif.set({
-        data: r.data, tmaxPrev: r.tmaxPrev, tmaxVero: r.tmaxVero, tminPrev: r.tminPrev, tminVero: r.tminVero,
-        maeCons: r.maeCons, maeMigliore: r.migliore ? r.migliore.mae : null,
-        battuti: r.battuti, totali: r.totali, mmPrev: r.mmPrev, mmVero: r.mmVero,
-        scritto: new Date().toISOString()
-      });
-    }
-  } catch (e) { }
-}
-
-function fondiTaratura(memoria) {
-  if (!memoria || !memoria.taratura || !Array.isArray(memoria.taratura.bins)) return;
-  STATO.bins = STATO.bins.map((b, i) => {
-    const v = memoria.taratura.bins[i];
-    if (!v) return b;
-    return { c: b.c, n: b.n + (v.n || 0), colpi: b.colpi + (v.colpi || 0) };
-  });
-}
-
-function aggiungiStorico(memoria) {
-  if (!memoria || !memoria.storico.length) return;
-  const presenti = new Set(STATO.verifica.map(r => r.data));
-  const extra = memoria.storico
-    .filter(r => r && r.data && !presenti.has(r.data))
-    .map(r => ({ ...r, migliore: r.maeMigliore !== null && r.maeMigliore !== undefined ? { mae: r.maeMigliore } : null,
-                 mediano: null, peggiore: null }))
-    .sort((a, b) => a.data < b.data ? -1 : 1);
-  STATO.verifica = extra.concat(STATO.verifica);
-}
-
 /* ---------------- avvio ---------------- */
 
 async function avvia() {
@@ -3121,9 +3040,6 @@ async function avvia() {
   STATO.zona = disomogeneitaPioggia(oss);
   passo(3);
 
-  const memoria = await (async () => { const db = await apriMemoria(); return db ? { db, dati: await leggiMemoria(db) } : null; })();
-  if (memoria) { fondiTaratura(memoria.dati); aggiungiStorico(memoria.dati); }
-
   const cape = new Map();
   const rCape = val(5);
   if (rCape && rCape.hourly) {
@@ -3207,8 +3123,6 @@ async function avvia() {
   stato('dati aggiornati', 'vivo');
   STATO.tempi.totale = Math.round(performance.now() - t0);
   $('#pie-tempi').textContent = `Scaricati e incrociati ${nMod} modelli, ${nMembri} membri di ensemble e ${g0(righeArpa.length)} letture di stazione in ${(STATO.tempi.totale / 1000).toFixed(1)} secondi.`;
-
-  if (memoria && memoria.db) { scriviMemoria(memoria.db).catch(() => { }); }
 
   attivaNavigazione();
 
