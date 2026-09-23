@@ -139,33 +139,109 @@
    "mmVero": 0,
    "piovuto": 0,
    "fiducia": "alta"
+  },
+  {
+   "emessa": "2026-09-17",
+   "giorno": "2026-09-22",
+   "lead": 5,
+   "tmaxPrev": 23.1,
+   "tmaxVero": 23,
+   "tminPrev": 16.6,
+   "tminVero": 14.5,
+   "probPrev": 0.131,
+   "mmPrev": 0.5,
+   "mmVero": 0,
+   "piovuto": 0,
+   "fiducia": "bassa"
+  },
+  {
+   "emessa": "2026-09-18",
+   "giorno": "2026-09-22",
+   "lead": 4,
+   "tmaxPrev": 25.3,
+   "tmaxVero": 23,
+   "tminPrev": 17,
+   "tminVero": 14.5,
+   "probPrev": 0.065,
+   "mmPrev": 0.1,
+   "mmVero": 0,
+   "piovuto": 0,
+   "fiducia": "media"
+  },
+  {
+   "emessa": "2026-09-19",
+   "giorno": "2026-09-22",
+   "lead": 3,
+   "tmaxPrev": 24,
+   "tmaxVero": 23,
+   "tminPrev": 17.3,
+   "tminVero": 14.5,
+   "probPrev": 0.046,
+   "mmPrev": 0.4,
+   "mmVero": 0,
+   "piovuto": 0,
+   "fiducia": "bassa"
+  },
+  {
+   "emessa": "2026-09-20",
+   "giorno": "2026-09-22",
+   "lead": 2,
+   "tmaxPrev": 23.5,
+   "tmaxVero": 23,
+   "tminPrev": 16.6,
+   "tminVero": 14.5,
+   "probPrev": 0.072,
+   "mmPrev": 0.3,
+   "mmVero": 0,
+   "piovuto": 0,
+   "fiducia": "alta"
+  },
+  {
+   "emessa": "2026-09-21",
+   "giorno": "2026-09-22",
+   "lead": 1,
+   "tmaxPrev": 23.8,
+   "tmaxVero": 23,
+   "tminPrev": 17,
+   "tminVero": 14.5,
+   "probPrev": 0.026,
+   "mmPrev": 0.1,
+   "mmVero": 0,
+   "piovuto": 0,
+   "fiducia": "alta"
   }
  ],
- "aggiornato": "2026-09-22T10:20:43.885Z",
+ "aggiornato": "2026-09-23T07:49:32.543Z",
  "riassunto": {
   "1": {
-   "giorni": 4,
-   "erroreMassima": 0.13,
-   "scartoMassima": -0.13,
-   "brierPioggia": 0.0149
+   "giorni": 5,
+   "erroreMassima": 0.26,
+   "scartoMassima": 0.06,
+   "brierPioggia": 0.012
   },
   "2": {
-   "giorni": 3,
-   "erroreMassima": 0.17,
-   "scartoMassima": 0.1,
-   "brierPioggia": 0.0169
+   "giorni": 4,
+   "erroreMassima": 0.25,
+   "scartoMassima": 0.2,
+   "brierPioggia": 0.014
   },
   "3": {
-   "giorni": 2,
-   "erroreMassima": 0.45,
-   "scartoMassima": -0.45,
-   "brierPioggia": 0
+   "giorni": 3,
+   "erroreMassima": 0.63,
+   "scartoMassima": 0.03,
+   "brierPioggia": 0.0007
   },
   "4": {
+   "giorni": 2,
+   "erroreMassima": 1.35,
+   "scartoMassima": 0.95,
+   "brierPioggia": 0.0022
+  },
+  "5": {
    "giorni": 1,
-   "erroreMassima": 0.4,
-   "scartoMassima": -0.4,
-   "brierPioggia": 0.0002
+   "erroreMassima": 0.1,
+   "scartoMassima": 0.1,
+   "brierPioggia": 0.0172
   }
  }
 }
