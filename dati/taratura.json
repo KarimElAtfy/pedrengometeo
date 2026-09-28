@@ -1,17 +1,17 @@
 {
- "aggiornato": "2026-09-28T08:47:28.455Z",
+ "aggiornato": "2026-09-28T11:59:55.164Z",
  "giorniGuardati": 92,
  "orePiovoseMisurate": 77,
- "oreTotali": 2207,
+ "oreTotali": 2209,
  "bins": [
   {
    "c": 0,
-   "n": 996,
+   "n": 1002,
    "colpi": 0
   },
   {
    "c": 0.1,
-   "n": 446,
+   "n": 442,
    "colpi": 1
   },
   {
