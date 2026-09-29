@@ -1,28 +1,28 @@
 {
- "aggiornato": "2026-09-28T11:59:55.164Z",
+ "aggiornato": "2026-09-29T08:44:43.779Z",
  "giorniGuardati": 92,
- "orePiovoseMisurate": 77,
- "oreTotali": 2209,
+ "orePiovoseMisurate": 75,
+ "oreTotali": 2207,
  "bins": [
   {
    "c": 0,
-   "n": 1002,
+   "n": 1020,
    "colpi": 0
   },
   {
    "c": 0.1,
-   "n": 442,
+   "n": 437,
    "colpi": 1
   },
   {
    "c": 0.2,
-   "n": 397,
-   "colpi": 6
+   "n": 385,
+   "colpi": 5
   },
   {
    "c": 0.3,
-   "n": 98,
-   "colpi": 9
+   "n": 95,
+   "colpi": 8
   },
   {
    "c": 0.4,
