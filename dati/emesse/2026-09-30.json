@@ -1,0 +1,68 @@
+{
+ "emessa": "2026-09-30T08:40:32.583Z",
+ "giorni": [
+  {
+   "data": "2026-09-30",
+   "tmax": 22.3,
+   "tmin": 16.9,
+   "prob": 0,
+   "mm": 0,
+   "fiducia": "alta",
+   "parziale": true
+  },
+  {
+   "data": "2026-10-01",
+   "tmax": 22.7,
+   "tmin": 16,
+   "prob": 0.007,
+   "mm": 0,
+   "fiducia": "alta",
+   "parziale": false
+  },
+  {
+   "data": "2026-10-02",
+   "tmax": 23.1,
+   "tmin": 16.2,
+   "prob": 0.048,
+   "mm": 0.4,
+   "fiducia": "media",
+   "parziale": false
+  },
+  {
+   "data": "2026-10-03",
+   "tmax": 23.3,
+   "tmin": 14.5,
+   "prob": 0,
+   "mm": 0,
+   "fiducia": "media",
+   "parziale": false
+  },
+  {
+   "data": "2026-10-04",
+   "tmax": 23.4,
+   "tmin": 13.9,
+   "prob": 0.04,
+   "mm": 0,
+   "fiducia": "media",
+   "parziale": false
+  },
+  {
+   "data": "2026-10-05",
+   "tmax": 23.7,
+   "tmin": 12.9,
+   "prob": 0.056,
+   "mm": 0,
+   "fiducia": "media",
+   "parziale": false
+  },
+  {
+   "data": "2026-10-06",
+   "tmax": 24.1,
+   "tmin": 13.2,
+   "prob": 0.069,
+   "mm": 0,
+   "fiducia": "bassa",
+   "parziale": false
+  }
+ ]
+}
