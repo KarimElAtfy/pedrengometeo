@@ -797,45 +797,129 @@
    "mmVero": 0,
    "piovuto": 0,
    "fiducia": "alta"
+  },
+  {
+   "emessa": "2026-09-24",
+   "giorno": "2026-09-30",
+   "lead": 6,
+   "tmaxPrev": 24.5,
+   "tmaxVero": 23.8,
+   "tminPrev": 14.7,
+   "tminVero": 13.6,
+   "probPrev": 0.036,
+   "mmPrev": 0,
+   "mmVero": 0,
+   "piovuto": 0,
+   "fiducia": "bassa"
+  },
+  {
+   "emessa": "2026-09-25",
+   "giorno": "2026-09-30",
+   "lead": 5,
+   "tmaxPrev": 22.8,
+   "tmaxVero": 23.8,
+   "tminPrev": 14.9,
+   "tminVero": 13.6,
+   "probPrev": 0,
+   "mmPrev": 0,
+   "mmVero": 0,
+   "piovuto": 0,
+   "fiducia": "media"
+  },
+  {
+   "emessa": "2026-09-26",
+   "giorno": "2026-09-30",
+   "lead": 4,
+   "tmaxPrev": 23.2,
+   "tmaxVero": 23.8,
+   "tminPrev": 14.8,
+   "tminVero": 13.6,
+   "probPrev": 0.008,
+   "mmPrev": 0,
+   "mmVero": 0,
+   "piovuto": 0,
+   "fiducia": "media"
+  },
+  {
+   "emessa": "2026-09-27",
+   "giorno": "2026-09-30",
+   "lead": 3,
+   "tmaxPrev": 23.2,
+   "tmaxVero": 23.8,
+   "tminPrev": 14.3,
+   "tminVero": 13.6,
+   "probPrev": 0.008,
+   "mmPrev": 0,
+   "mmVero": 0,
+   "piovuto": 0,
+   "fiducia": "media"
+  },
+  {
+   "emessa": "2026-09-28",
+   "giorno": "2026-09-30",
+   "lead": 2,
+   "tmaxPrev": 23.3,
+   "tmaxVero": 23.8,
+   "tminPrev": 14.7,
+   "tminVero": 13.6,
+   "probPrev": 0.007,
+   "mmPrev": 0,
+   "mmVero": 0,
+   "piovuto": 0,
+   "fiducia": "alta"
+  },
+  {
+   "emessa": "2026-09-29",
+   "giorno": "2026-09-30",
+   "lead": 1,
+   "tmaxPrev": 23.6,
+   "tmaxVero": 23.8,
+   "tminPrev": 14.7,
+   "tminVero": 13.6,
+   "probPrev": 0.007,
+   "mmPrev": 0,
+   "mmVero": 0,
+   "piovuto": 0,
+   "fiducia": "alta"
   }
  ],
- "aggiornato": "2026-09-30T11:22:40.367Z",
+ "aggiornato": "2026-10-01T11:50:32.675Z",
  "riassunto": {
   "1": {
-   "giorni": 12,
-   "erroreMassima": 0.3,
-   "scartoMassima": 0.07,
-   "brierPioggia": 0.005
+   "giorni": 13,
+   "erroreMassima": 0.29,
+   "scartoMassima": 0.05,
+   "brierPioggia": 0.0046
   },
   "2": {
-   "giorni": 11,
-   "erroreMassima": 0.26,
-   "scartoMassima": 0.17,
-   "brierPioggia": 0.0051
+   "giorni": 12,
+   "erroreMassima": 0.28,
+   "scartoMassima": 0.12,
+   "brierPioggia": 0.0047
   },
   "3": {
-   "giorni": 10,
-   "erroreMassima": 0.66,
-   "scartoMassima": 0.14,
-   "brierPioggia": 0.0024
+   "giorni": 11,
+   "erroreMassima": 0.65,
+   "scartoMassima": 0.07,
+   "brierPioggia": 0.0022
   },
   "4": {
-   "giorni": 9,
-   "erroreMassima": 0.92,
-   "scartoMassima": 0.68,
-   "brierPioggia": 0.0021
+   "giorni": 10,
+   "erroreMassima": 0.89,
+   "scartoMassima": 0.55,
+   "brierPioggia": 0.0019
   },
   "5": {
-   "giorni": 8,
-   "erroreMassima": 0.84,
-   "scartoMassima": 0.84,
-   "brierPioggia": 0.003
+   "giorni": 9,
+   "erroreMassima": 0.86,
+   "scartoMassima": 0.63,
+   "brierPioggia": 0.0027
   },
   "6": {
-   "giorni": 7,
-   "erroreMassima": 0.76,
-   "scartoMassima": 0.47,
-   "brierPioggia": 0.0045
+   "giorni": 8,
+   "erroreMassima": 0.75,
+   "scartoMassima": 0.5,
+   "brierPioggia": 0.0041
   }
  }
 }

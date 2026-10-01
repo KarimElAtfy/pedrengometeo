@@ -1,197 +1,197 @@
 {
- "aggiornato": "2026-09-30T11:22:40.322Z",
- "offsetSito": 0.79,
+ "aggiornato": "2026-10-01T11:50:32.630Z",
+ "offsetSito": 0.8,
  "fascia": {
-  "fattore": 1.27,
-  "coperturaPrima": 0.657,
-  "coperturaDopo": 0.794,
-  "nProva": 175
+  "fattore": 1.28,
+  "coperturaPrima": 0.571,
+  "coperturaDopo": 0.729,
+  "nProva": 177
  },
  "zona": {
-  "ore": 123,
-  "quota": 0.61,
+  "ore": 122,
+  "quota": 0.615,
   "rapporto": 0.712
  },
  "sfasamenti": {
   "italia_meteo_arpae_icon_2i": {
    "ore": 2,
-   "guadagno": 0.11111760163146008
+   "guadagno": 0.11112285659167119
   },
   "meteofrance_seamless": {
    "ore": -2,
-   "guadagno": 0.08012671244232565
+   "guadagno": 0.0801319786429192
   },
   "arome_france_hd": {
    "ore": -2,
-   "guadagno": 0.08012671244232565
+   "guadagno": 0.0801319786429192
   },
   "dmi_seamless": {
    "ore": -3,
-   "guadagno": 0.14295811412041848
+   "guadagno": 0.14296462257902687
   }
  },
  "modelli": {
   "ecmwf_ifs025": {
-   "mae24": 1.3,
-   "mae48": 1.34,
-   "mae72": 1.48,
+   "mae24": 1.26,
+   "mae48": 1.32,
+   "mae72": 1.44,
    "pod": 1,
-   "far": 0.783,
-   "scartoMax": -0.37,
-   "campioni": 1500
+   "far": 0.802,
+   "scartoMax": -0.42,
+   "campioni": 1515
   },
   "ecmwf_aifs025_single": {
    "mae24": 1.19,
-   "mae48": 1.26,
-   "mae72": 1.31,
+   "mae48": 1.27,
+   "mae72": 1.32,
    "pod": 1,
-   "far": 0.836,
-   "scartoMax": -0.39,
-   "campioni": 1500
+   "far": 0.863,
+   "scartoMax": -0.29,
+   "campioni": 1515
   },
   "icon_seamless": {
-   "mae24": 0.94,
-   "mae48": 0.86,
-   "mae72": 0.95,
-   "pod": 0.654,
-   "far": 0.564,
-   "scartoMax": -0.25,
-   "campioni": 1500
+   "mae24": 0.88,
+   "mae48": 0.83,
+   "mae72": 0.93,
+   "pod": 0.632,
+   "far": 0.5,
+   "scartoMax": -0.19,
+   "campioni": 1515
   },
   "icon_eu": {
-   "mae24": 0.87,
-   "mae48": 0.86,
-   "mae72": 0.95,
-   "pod": 0.846,
-   "far": 0.725,
-   "scartoMax": -0.58,
-   "campioni": 1500
+   "mae24": 0.84,
+   "mae48": 0.83,
+   "mae72": 0.93,
+   "pod": 0.789,
+   "far": 0.732,
+   "scartoMax": -0.52,
+   "campioni": 1515
   },
   "icon_d2": {
-   "mae24": 0.94,
+   "mae24": 0.88,
    "mae48": null,
    "mae72": null,
-   "pod": 0.654,
-   "far": 0.564,
-   "scartoMax": -0.25,
-   "campioni": 500
+   "pod": 0.632,
+   "far": 0.5,
+   "scartoMax": -0.19,
+   "campioni": 505
   },
   "italia_meteo_arpae_icon_2i": {
-   "mae24": 0.87,
-   "mae48": 0.98,
+   "mae24": 0.82,
+   "mae48": 0.94,
    "mae72": null,
-   "pod": 0.462,
-   "far": 0.571,
-   "scartoMax": -0.73,
-   "campioni": 1000
+   "pod": 0.526,
+   "far": 0.524,
+   "scartoMax": -0.66,
+   "campioni": 1010
   },
   "gfs_seamless": {
    "mae24": 1.38,
-   "mae48": 1.3,
-   "mae72": 1.41,
-   "pod": 0.846,
-   "far": 0.735,
-   "scartoMax": -0.55,
-   "campioni": 1500
+   "mae48": 1.29,
+   "mae72": 1.4,
+   "pod": 0.789,
+   "far": 0.746,
+   "scartoMax": -0.43,
+   "campioni": 1515
   },
   "gfs_global": {
    "mae24": 1.38,
-   "mae48": 1.3,
-   "mae72": 1.41,
-   "pod": 0.846,
-   "far": 0.735,
-   "scartoMax": -0.55,
-   "campioni": 1500
+   "mae48": 1.29,
+   "mae72": 1.4,
+   "pod": 0.789,
+   "far": 0.746,
+   "scartoMax": -0.43,
+   "campioni": 1515
   },
   "meteofrance_seamless": {
-   "mae24": 1.34,
-   "mae48": 1.14,
-   "mae72": 1.26,
-   "pod": 0.731,
-   "far": 0.578,
-   "scartoMax": -0.54,
-   "campioni": 1500
+   "mae24": 1.37,
+   "mae48": 1.11,
+   "mae72": 1.21,
+   "pod": 0.737,
+   "far": 0.611,
+   "scartoMax": -0.6,
+   "campioni": 1515
   },
   "arpege_europe": {
-   "mae24": 1.09,
-   "mae48": 1.14,
-   "mae72": 1.26,
+   "mae24": 1.06,
+   "mae48": 1.11,
+   "mae72": 1.21,
    "pod": 1,
-   "far": 0.687,
-   "scartoMax": -0.89,
-   "campioni": 1500
+   "far": 0.678,
+   "scartoMax": -0.85,
+   "campioni": 1515
   },
   "arome_france_hd": {
-   "mae24": 1.34,
+   "mae24": 1.37,
    "mae48": null,
    "mae72": null,
-   "pod": 0.731,
-   "far": 0.578,
-   "scartoMax": -0.54,
-   "campioni": 500
+   "pod": 0.737,
+   "far": 0.611,
+   "scartoMax": -0.6,
+   "campioni": 505
   },
   "ukmo_seamless": {
-   "mae24": 1.28,
-   "mae48": 1.22,
-   "mae72": 1.29,
-   "pod": 0.808,
-   "far": 0.72,
-   "scartoMax": -0.82,
-   "campioni": 1500
+   "mae24": 1.27,
+   "mae48": 1.24,
+   "mae72": 1.23,
+   "pod": 0.737,
+   "far": 0.745,
+   "scartoMax": -0.86,
+   "campioni": 1515
   },
   "jma_seamless": {
-   "mae24": 1.36,
-   "mae48": 1.37,
-   "mae72": 1.35,
-   "pod": 0.885,
-   "far": 0.768,
-   "scartoMax": -0.27,
-   "campioni": 1500
+   "mae24": 1.35,
+   "mae48": 1.31,
+   "mae72": 1.31,
+   "pod": 0.842,
+   "far": 0.787,
+   "scartoMax": -0.17,
+   "campioni": 1515
   },
   "knmi_seamless": {
-   "mae24": 1.92,
-   "mae48": 1.28,
-   "mae72": 1.44,
-   "pod": 0.577,
-   "far": 0.583,
-   "scartoMax": -0.39,
-   "campioni": 1500
+   "mae24": 1.99,
+   "mae48": 1.27,
+   "mae72": 1.42,
+   "pod": 0.632,
+   "far": 0.556,
+   "scartoMax": -0.3,
+   "campioni": 1515
   },
   "dmi_seamless": {
-   "mae24": 1.75,
-   "mae48": 1.28,
-   "mae72": 1.44,
-   "pod": 0.615,
-   "far": 0.652,
-   "scartoMax": -0.29,
-   "campioni": 1500
+   "mae24": 1.8,
+   "mae48": 1.27,
+   "mae72": 1.42,
+   "pod": 0.684,
+   "far": 0.639,
+   "scartoMax": -0.2,
+   "campioni": 1515
   },
   "metno_seamless": {
-   "mae24": 1.26,
-   "mae48": 1.28,
-   "mae72": 1.44,
-   "pod": 0.846,
-   "far": 0.778,
-   "scartoMax": -0.32,
-   "campioni": 1500
+   "mae24": 1.24,
+   "mae48": 1.27,
+   "mae72": 1.42,
+   "pod": 0.789,
+   "far": 0.81,
+   "scartoMax": -0.43,
+   "campioni": 1515
   },
   "gem_seamless": {
-   "mae24": 1.46,
-   "mae48": 1.42,
+   "mae24": 1.48,
+   "mae48": 1.45,
    "mae72": 1.62,
-   "pod": 0.769,
-   "far": 0.796,
-   "scartoMax": -0.91,
-   "campioni": 1500
+   "pod": 0.737,
+   "far": 0.825,
+   "scartoMax": -0.9,
+   "campioni": 1515
   },
   "cma_grapes_global": {
-   "mae24": 1.93,
+   "mae24": 1.9,
    "mae48": 1.92,
-   "mae72": 2.06,
+   "mae72": 2.03,
    "pod": 1,
-   "far": 0.701,
-   "scartoMax": -1.03,
-   "campioni": 1500
+   "far": 0.712,
+   "scartoMax": -0.96,
+   "campioni": 1515
   }
  }
 }
